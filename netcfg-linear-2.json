@@ -1,0 +1,97 @@
+{
+  "devices": {
+    "device:bmv2:r1": {
+      "basic": {
+        "name": "r1",
+        "driver": "bmv2",
+        "pipeconf": "org.onosproject.ngsdn-multirouter",
+        "managementAddress": "grpc://127.0.0.1:9559?device_id=0"
+      },
+      "fabricDeviceConfig": {
+        "myStationMac": "00:aa:00:00:00:01",
+        "mySid": "fc00:0:1::",
+        "isSpine": false
+      }
+    },
+    "device:bmv2:r2": {
+      "basic": {
+        "name": "r2",
+        "driver": "bmv2",
+        "pipeconf": "org.onosproject.ngsdn-multirouter",
+        "managementAddress": "grpc://127.0.0.1:9560?device_id=1"
+      },
+      "fabricDeviceConfig": {
+        "myStationMac": "00:aa:00:00:00:02",
+        "mySid": "fc00:0:2::",
+        "isSpine": false
+      }
+    }
+  },
+  "ports": {
+    "device:bmv2:r1/2": {
+      "interfaces": [
+        {
+          "name": "r1-h1",
+          "ips": [
+            "2001:1:1::254/64"
+          ]
+        }
+      ]
+    },
+    "device:bmv2:r2/2": {
+      "interfaces": [
+        {
+          "name": "r2-h2",
+          "ips": [
+            "2001:2:1::254/64"
+          ]
+        }
+      ]
+    }
+  },
+  "links": {
+    "device:bmv2:r1/1-device:bmv2:r2/1": {
+      "basic": {
+        "type": "DIRECT",
+        "isDurable": true
+      }
+    },
+    "device:bmv2:r2/1-device:bmv2:r1/1": {
+      "basic": {
+        "type": "DIRECT",
+        "isDurable": true
+      }
+    }
+  },
+  "hosts": {
+    "00:04:00:00:00:00/None": {
+      "basic": {
+        "name": "h1",
+        "ips": [
+          "2001:1:1::10"
+        ],
+        "locations": [
+          "device:bmv2:r1/2"
+        ]
+      }
+    },
+    "00:04:00:00:01:00/None": {
+      "basic": {
+        "name": "h2",
+        "ips": [
+          "2001:2:1::10"
+        ],
+        "locations": [
+          "device:bmv2:r2/2"
+        ]
+      }
+    }
+  },
+  "apps": {
+    "org.onosproject.core": {
+      "core": {
+        "linkDiscoveryMode": "STRICT"
+      }
+    }
+  }
+}
