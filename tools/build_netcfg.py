@@ -117,14 +117,12 @@ def build_netcfg(args):
         right_cp = f"device:bmv2:r{right}/{right_port}"
         netcfg["links"][f"{left_cp}-{right_cp}"] = {
             "basic": {
-                "type": "DIRECT",
-                "isDurable": True
+                "type": "DIRECT"
             }
         }
         netcfg["links"][f"{right_cp}-{left_cp}"] = {
             "basic": {
-                "type": "DIRECT",
-                "isDurable": True
+                "type": "DIRECT"
             }
         }
 

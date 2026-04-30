@@ -30,6 +30,7 @@ import org.onosproject.net.DeviceId;
 import org.onosproject.net.Host;
 import org.onosproject.net.HostLocation;
 import org.onosproject.net.Link;
+import org.onosproject.net.LinkKey;
 import org.onosproject.net.PortNumber;
 import org.onosproject.net.config.NetworkConfigService;
 import org.onosproject.net.device.DeviceEvent;
@@ -301,7 +302,7 @@ public class Ipv6RoutingComponent {
     }
 
     private void setUpL2NextHopRules(DeviceId deviceId) {
-        for (Link link : linkService.getDeviceEgressLinks(deviceId)) {
+        for (LinkKey link : getTopologyEgressLinks(deviceId)) {
             final DeviceId nextHopDevice = link.dst().deviceId();
             final PortNumber outPort = link.src().port();
             final MacAddress nextHopMac = getMyStationMac(nextHopDevice);
@@ -360,7 +361,7 @@ public class Ipv6RoutingComponent {
             return Optional.of(new NextHop(host.mac(), hostLocation.port()));
         }
 
-        final Optional<Link> firstHop = shortestPathFirstHop(srcDevice, dstDevice);
+        final Optional<LinkKey> firstHop = shortestPathFirstHop(srcDevice, dstDevice);
         if (!firstHop.isPresent()) {
             return Optional.empty();
         }
@@ -371,17 +372,17 @@ public class Ipv6RoutingComponent {
                 firstHop.get().src().port()));
     }
 
-    private Optional<Link> shortestPathFirstHop(DeviceId srcDevice, DeviceId dstDevice) {
+    private Optional<LinkKey> shortestPathFirstHop(DeviceId srcDevice, DeviceId dstDevice) {
         final Queue<DeviceId> queue = new ArrayDeque<>();
         final Set<DeviceId> visited = new HashSet<>();
-        final Map<DeviceId, Link> parentLink = new HashMap<>();
+        final Map<DeviceId, LinkKey> parentLink = new HashMap<>();
 
         visited.add(srcDevice);
         queue.add(srcDevice);
 
         while (!queue.isEmpty()) {
             final DeviceId current = queue.remove();
-            for (Link link : linkService.getDeviceEgressLinks(current)) {
+            for (LinkKey link : getTopologyEgressLinks(current)) {
                 final DeviceId next = link.dst().deviceId();
                 if (!visited.add(next)) {
                     continue;
@@ -397,15 +398,28 @@ public class Ipv6RoutingComponent {
         return Optional.empty();
     }
 
-    private Optional<Link> unwindFirstHop(DeviceId srcDevice, DeviceId dstDevice,
-                                          Map<DeviceId, Link> parentLink) {
+    private Optional<LinkKey> unwindFirstHop(DeviceId srcDevice, DeviceId dstDevice,
+                                             Map<DeviceId, LinkKey> parentLink) {
         DeviceId step = dstDevice;
-        Link firstHop = parentLink.get(step);
+        LinkKey firstHop = parentLink.get(step);
         while (firstHop != null && !firstHop.src().deviceId().equals(srcDevice)) {
             step = firstHop.src().deviceId();
             firstHop = parentLink.get(step);
         }
         return Optional.ofNullable(firstHop);
+    }
+
+    private Set<LinkKey> getTopologyEgressLinks(DeviceId deviceId) {
+        final Set<LinkKey> links = new HashSet<>();
+
+        linkService.getDeviceEgressLinks(deviceId).forEach(link ->
+                links.add(LinkKey.linkKey(link)));
+
+        networkConfigService.getSubjects(LinkKey.class).stream()
+                .filter(link -> link.src().deviceId().equals(deviceId))
+                .forEach(links::add);
+
+        return links;
     }
 
     private MacAddress getMyStationMac(DeviceId deviceId) {

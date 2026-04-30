@@ -1,0 +1,277 @@
+{
+  "devices": {
+    "device:bmv2:r1": {
+      "basic": {
+        "name": "r1",
+        "driver": "bmv2",
+        "pipeconf": "org.onosproject.ngsdn-multirouter",
+        "managementAddress": "grpc://172.20.0.1:9559?device_id=0"
+      },
+      "fabricDeviceConfig": {
+        "myStationMac": "00:aa:00:00:00:01",
+        "mySid": "fc00:0:1::",
+        "isSpine": false
+      }
+    },
+    "device:bmv2:r2": {
+      "basic": {
+        "name": "r2",
+        "driver": "bmv2",
+        "pipeconf": "org.onosproject.ngsdn-multirouter",
+        "managementAddress": "grpc://172.20.0.1:9560?device_id=1"
+      },
+      "fabricDeviceConfig": {
+        "myStationMac": "00:aa:00:00:00:02",
+        "mySid": "fc00:0:2::",
+        "isSpine": false
+      }
+    },
+    "device:bmv2:r3": {
+      "basic": {
+        "name": "r3",
+        "driver": "bmv2",
+        "pipeconf": "org.onosproject.ngsdn-multirouter",
+        "managementAddress": "grpc://172.20.0.1:9561?device_id=2"
+      },
+      "fabricDeviceConfig": {
+        "myStationMac": "00:aa:00:00:00:03",
+        "mySid": "fc00:0:3::",
+        "isSpine": false
+      }
+    },
+    "device:bmv2:r4": {
+      "basic": {
+        "name": "r4",
+        "driver": "bmv2",
+        "pipeconf": "org.onosproject.ngsdn-multirouter",
+        "managementAddress": "grpc://172.20.0.1:9562?device_id=3"
+      },
+      "fabricDeviceConfig": {
+        "myStationMac": "00:aa:00:00:00:04",
+        "mySid": "fc00:0:4::",
+        "isSpine": false
+      }
+    }
+  },
+  "ports": {
+    "device:bmv2:r1/3": {
+      "interfaces": [
+        {
+          "name": "r1-h1",
+          "ips": [
+            "2001:1:1::254/64"
+          ]
+        }
+      ]
+    },
+    "device:bmv2:r1/4": {
+      "interfaces": [
+        {
+          "name": "r1-h2",
+          "ips": [
+            "2001:1:2::254/64"
+          ]
+        }
+      ]
+    },
+    "device:bmv2:r2/3": {
+      "interfaces": [
+        {
+          "name": "r2-h3",
+          "ips": [
+            "2001:2:1::254/64"
+          ]
+        }
+      ]
+    },
+    "device:bmv2:r2/4": {
+      "interfaces": [
+        {
+          "name": "r2-h4",
+          "ips": [
+            "2001:2:2::254/64"
+          ]
+        }
+      ]
+    },
+    "device:bmv2:r3/3": {
+      "interfaces": [
+        {
+          "name": "r3-h5",
+          "ips": [
+            "2001:3:1::254/64"
+          ]
+        }
+      ]
+    },
+    "device:bmv2:r3/4": {
+      "interfaces": [
+        {
+          "name": "r3-h6",
+          "ips": [
+            "2001:3:2::254/64"
+          ]
+        }
+      ]
+    },
+    "device:bmv2:r4/3": {
+      "interfaces": [
+        {
+          "name": "r4-h7",
+          "ips": [
+            "2001:4:1::254/64"
+          ]
+        }
+      ]
+    },
+    "device:bmv2:r4/4": {
+      "interfaces": [
+        {
+          "name": "r4-h8",
+          "ips": [
+            "2001:4:2::254/64"
+          ]
+        }
+      ]
+    }
+  },
+  "links": {
+    "device:bmv2:r1/1-device:bmv2:r2/1": {
+      "basic": {
+        "type": "DIRECT"
+      }
+    },
+    "device:bmv2:r2/1-device:bmv2:r1/1": {
+      "basic": {
+        "type": "DIRECT"
+      }
+    },
+    "device:bmv2:r2/2-device:bmv2:r3/1": {
+      "basic": {
+        "type": "DIRECT"
+      }
+    },
+    "device:bmv2:r3/1-device:bmv2:r2/2": {
+      "basic": {
+        "type": "DIRECT"
+      }
+    },
+    "device:bmv2:r3/2-device:bmv2:r4/1": {
+      "basic": {
+        "type": "DIRECT"
+      }
+    },
+    "device:bmv2:r4/1-device:bmv2:r3/2": {
+      "basic": {
+        "type": "DIRECT"
+      }
+    },
+    "device:bmv2:r4/2-device:bmv2:r1/2": {
+      "basic": {
+        "type": "DIRECT"
+      }
+    },
+    "device:bmv2:r1/2-device:bmv2:r4/2": {
+      "basic": {
+        "type": "DIRECT"
+      }
+    }
+  },
+  "hosts": {
+    "00:04:00:00:00:00/None": {
+      "basic": {
+        "name": "h1",
+        "ips": [
+          "2001:1:1::10"
+        ],
+        "locations": [
+          "device:bmv2:r1/3"
+        ]
+      }
+    },
+    "00:04:00:00:00:01/None": {
+      "basic": {
+        "name": "h2",
+        "ips": [
+          "2001:1:2::10"
+        ],
+        "locations": [
+          "device:bmv2:r1/4"
+        ]
+      }
+    },
+    "00:04:00:00:01:00/None": {
+      "basic": {
+        "name": "h3",
+        "ips": [
+          "2001:2:1::10"
+        ],
+        "locations": [
+          "device:bmv2:r2/3"
+        ]
+      }
+    },
+    "00:04:00:00:01:01/None": {
+      "basic": {
+        "name": "h4",
+        "ips": [
+          "2001:2:2::10"
+        ],
+        "locations": [
+          "device:bmv2:r2/4"
+        ]
+      }
+    },
+    "00:04:00:00:02:00/None": {
+      "basic": {
+        "name": "h5",
+        "ips": [
+          "2001:3:1::10"
+        ],
+        "locations": [
+          "device:bmv2:r3/3"
+        ]
+      }
+    },
+    "00:04:00:00:02:01/None": {
+      "basic": {
+        "name": "h6",
+        "ips": [
+          "2001:3:2::10"
+        ],
+        "locations": [
+          "device:bmv2:r3/4"
+        ]
+      }
+    },
+    "00:04:00:00:03:00/None": {
+      "basic": {
+        "name": "h7",
+        "ips": [
+          "2001:4:1::10"
+        ],
+        "locations": [
+          "device:bmv2:r4/3"
+        ]
+      }
+    },
+    "00:04:00:00:03:01/None": {
+      "basic": {
+        "name": "h8",
+        "ips": [
+          "2001:4:2::10"
+        ],
+        "locations": [
+          "device:bmv2:r4/4"
+        ]
+      }
+    }
+  },
+  "apps": {
+    "org.onosproject.core": {
+      "core": {
+        "linkDiscoveryMode": "STRICT"
+      }
+    }
+  }
+}
