@@ -18,6 +18,7 @@ CPU_PORT="${CPU_PORT:-255}"
 ONOS_IP="${ONOS_IP:-127.0.0.1}"
 PCAP_DUMP="${PCAP_DUMP:-0}"
 CLEAN_MININET="${CLEAN_MININET:-1}"
+CLEAN_STALE_P4="${CLEAN_STALE_P4:-1}"
 BUILD_P4_IF_MISSING="${BUILD_P4_IF_MISSING:-1}"
 SUDO_CMD="${SUDO_CMD:-sudo}"
 
@@ -46,6 +47,12 @@ if [[ ! -f "${JSON_PATH}" || ! -f "${P4INFO_PATH}" ]]; then
 fi
 
 if [[ "${CLEAN_MININET}" == "1" ]]; then
+  if [[ "${CLEAN_STALE_P4}" == "1" ]]; then
+    echo "Stopping stale P4Runtime/Mininet processes..."
+    "${SUDO[@]}" pkill -f "multi_router_p4runtime.py" >/dev/null 2>&1 || true
+    "${SUDO[@]}" pkill -f "simple_switch_grpc" >/dev/null 2>&1 || true
+  fi
+
   echo "Cleaning previous Mininet state..."
   "${SUDO[@]}" mn -c
 fi

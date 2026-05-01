@@ -17,6 +17,9 @@ ONOS_DOCKER_SUBNET="${ONOS_DOCKER_SUBNET:-172.20.0.0/16}"
 ONOS_DOCKER_GATEWAY="${ONOS_DOCKER_GATEWAY:-172.20.0.1}"
 RECREATE_ONOS="${RECREATE_ONOS:-0}"
 RECREATE_ON_PORT_CONFLICT="${RECREATE_ON_PORT_CONFLICT:-1}"
+RECREATE_ONOS_NETWORK="${RECREATE_ONOS_NETWORK:-0}"
+CLEAN_STALE_ONOS_NETWORK="${CLEAN_STALE_ONOS_NETWORK:-1}"
+RECREATE_UNHEALTHY_ONOS="${RECREATE_UNHEALTHY_ONOS:-1}"
 
 ROUTERS="${ROUTERS:-2}"
 HOSTS_PER_ROUTER="${HOSTS_PER_ROUTER:-1}"
@@ -39,12 +42,13 @@ BUILD_APP="${BUILD_APP:-1}"
 BUILD_P4="${BUILD_P4:-1}"
 ONOS_WAIT_RETRIES="${ONOS_WAIT_RETRIES:-60}"
 ONOS_WAIT_SECONDS="${ONOS_WAIT_SECONDS:-2}"
-ONOS_ACTION_RETRIES="${ONOS_ACTION_RETRIES:-20}"
+ONOS_ACTION_RETRIES="${ONOS_ACTION_RETRIES:-40}"
 ONOS_ACTION_WAIT_SECONDS="${ONOS_ACTION_WAIT_SECONDS:-3}"
 ONOS_CURL_CONNECT_TIMEOUT="${ONOS_CURL_CONNECT_TIMEOUT:-2}"
 ONOS_CURL_MAX_TIME="${ONOS_CURL_MAX_TIME:-5}"
 
 read -r -a DOCKER <<< "${DOCKER_CMD}"
+ONOS_CONTAINER_RECREATED=0
 CURL_ARGS=(
   --fail
   -sS
@@ -78,6 +82,86 @@ docker_network_exists() {
 
 container_uses_onos_network() {
   [[ "$("${DOCKER[@]}" inspect -f "{{with index .NetworkSettings.Networks \"${ONOS_DOCKER_NETWORK}\"}}true{{end}}" "${ONOS_CONTAINER}" 2>/dev/null || true)" == "true" ]]
+}
+
+onos_network_ipam() {
+  "${DOCKER[@]}" network inspect -f '{{range .IPAM.Config}}{{.Subnet}} {{.Gateway}}{{end}}' \
+    "${ONOS_DOCKER_NETWORK}" 2>/dev/null || true
+}
+
+onos_network_bridge() {
+  local bridge
+  local network_id
+  bridge="$("${DOCKER[@]}" network inspect -f '{{index .Options "com.docker.network.bridge.name"}}' \
+    "${ONOS_DOCKER_NETWORK}" 2>/dev/null || true)"
+  if [[ -n "${bridge}" && "${bridge}" != "<no value>" ]]; then
+    printf '%s' "${bridge}"
+    return 0
+  fi
+
+  network_id="$("${DOCKER[@]}" network inspect -f '{{.Id}}' "${ONOS_DOCKER_NETWORK}" 2>/dev/null || true)"
+  if [[ -n "${network_id}" ]]; then
+    printf 'br-%.12s' "${network_id}"
+  fi
+}
+
+onos_network_bridge_has_gateway() {
+  local bridge="$1"
+  ip -4 addr show dev "${bridge}" 2>/dev/null |
+    grep -Eq "inet[[:space:]]+${ONOS_DOCKER_GATEWAY}/"
+}
+
+remove_onos_container() {
+  if docker_exists; then
+    echo "Removing existing ONOS container ${ONOS_CONTAINER}..."
+    "${DOCKER[@]}" rm -f "${ONOS_CONTAINER}" >/dev/null
+    ONOS_CONTAINER_RECREATED=1
+  fi
+}
+
+remove_onos_network() {
+  if [[ "${ONOS_DOCKER_NETWORK}" == "bridge" ]]; then
+    return 0
+  fi
+  if docker_network_exists; then
+    echo "Removing Docker network ${ONOS_DOCKER_NETWORK}..."
+    "${DOCKER[@]}" network rm "${ONOS_DOCKER_NETWORK}" >/dev/null
+  fi
+}
+
+network_needs_recreate() {
+  local bridge
+  local ipam
+
+  if [[ "${ONOS_DOCKER_NETWORK}" == "bridge" ]]; then
+    return 1
+  fi
+  if ! docker_network_exists; then
+    return 1
+  fi
+
+  ipam="$(onos_network_ipam)"
+  if [[ "${ipam}" != "${ONOS_DOCKER_SUBNET} ${ONOS_DOCKER_GATEWAY}" ]]; then
+    echo "Existing Docker network ${ONOS_DOCKER_NETWORK} uses '${ipam}', expected '${ONOS_DOCKER_SUBNET} ${ONOS_DOCKER_GATEWAY}'."
+    return 0
+  fi
+
+  bridge="$(onos_network_bridge)"
+  if [[ -z "${bridge}" || ! -e "/sys/class/net/${bridge}" ]]; then
+    echo "Existing Docker network ${ONOS_DOCKER_NETWORK} has no host bridge interface."
+    return 0
+  fi
+  if ! onos_network_bridge_has_gateway "${bridge}"; then
+    echo "Existing Docker network ${ONOS_DOCKER_NETWORK} bridge ${bridge} is missing gateway ${ONOS_DOCKER_GATEWAY}."
+    return 0
+  fi
+
+  return 1
+}
+
+recreate_onos_network() {
+  remove_onos_container
+  remove_onos_network
 }
 
 ensure_onos_network() {
@@ -150,6 +234,72 @@ onos_copy_to_container() {
   "${DOCKER[@]}" cp "${src}" "${ONOS_CONTAINER}:${dst}"
 }
 
+onos_print_diagnostics() {
+  echo "Container status:" >&2
+  "${DOCKER[@]}" ps --filter "name=^/${ONOS_CONTAINER}$" --format '  {{.Names}} {{.Status}} {{.Ports}}' >&2 || true
+  echo "Recent ONOS logs:" >&2
+  "${DOCKER[@]}" logs --tail 80 "${ONOS_CONTAINER}" >&2 || true
+}
+
+start_onos_container() {
+  if docker_exists; then
+    if docker_running; then
+      echo "ONOS container ${ONOS_CONTAINER} is already running."
+    else
+      echo "Starting existing ONOS container ${ONOS_CONTAINER}..."
+      "${DOCKER[@]}" start "${ONOS_CONTAINER}" >/dev/null
+    fi
+  else
+    echo "Creating ONOS container ${ONOS_CONTAINER} from ${ONOS_IMAGE}..."
+    "${DOCKER[@]}" run -d \
+      --name "${ONOS_CONTAINER}" \
+      --network "${ONOS_DOCKER_NETWORK}" \
+      -p 8181:8181 \
+      -p 8101:8101 \
+      -p 50051:50051 \
+      -p 6640:6640 \
+      -p 6653:6653 \
+      -p 9876:9876 \
+      "${ONOS_IMAGE}" >/dev/null
+    ONOS_CONTAINER_RECREATED=1
+  fi
+}
+
+onos_app_service_ready() {
+  local output
+  local status
+  local body
+  local rc
+
+  output="$(onos_curl_with_status "${REST_URL}/onos/v1/applications" 2>/dev/null || true)"
+  rc=$?
+  status="${output##*$'\n'}"
+  body="${output%$'\n'*}"
+
+  [[ "${rc}" == "0" && "${status}" == "200" && "${body}" == *'"applications"'* ]]
+}
+
+wait_for_onos_ready() {
+  local attempt
+
+  echo "Waiting for ONOS application service at ${REST_URL} using ${ONOS_REST_MODE} mode..."
+  for attempt in $(seq 1 "${ONOS_WAIT_RETRIES}"); do
+    if onos_app_service_ready; then
+      return 0
+    fi
+    sleep "${ONOS_WAIT_SECONDS}"
+  done
+  return 1
+}
+
+if [[ "${RECREATE_ONOS_NETWORK}" == "1" ]]; then
+  echo "RECREATE_ONOS_NETWORK=1, recreating Docker network ${ONOS_DOCKER_NETWORK}."
+  recreate_onos_network
+elif [[ "${CLEAN_STALE_ONOS_NETWORK}" == "1" ]] && network_needs_recreate; then
+  echo "Recreating stale Docker network ${ONOS_DOCKER_NETWORK}."
+  recreate_onos_network
+fi
+
 if docker_exists &&
     [[ "${RECREATE_ONOS}" != "1" ]] &&
     [[ "${RECREATE_ON_PORT_CONFLICT}" == "1" ]] &&
@@ -168,32 +318,12 @@ if docker_exists &&
 fi
 
 if [[ "${RECREATE_ONOS}" == "1" ]] && docker_exists; then
-  echo "Removing existing ONOS container ${ONOS_CONTAINER}..."
-  "${DOCKER[@]}" rm -f "${ONOS_CONTAINER}" >/dev/null
+  remove_onos_container
 fi
 
 ensure_onos_network
 
-if docker_exists; then
-  if docker_running; then
-    echo "ONOS container ${ONOS_CONTAINER} is already running."
-  else
-    echo "Starting existing ONOS container ${ONOS_CONTAINER}..."
-    "${DOCKER[@]}" start "${ONOS_CONTAINER}" >/dev/null
-  fi
-else
-  echo "Creating ONOS container ${ONOS_CONTAINER} from ${ONOS_IMAGE}..."
-  "${DOCKER[@]}" run -d \
-    --name "${ONOS_CONTAINER}" \
-    --network "${ONOS_DOCKER_NETWORK}" \
-    -p 8181:8181 \
-    -p 8101:8101 \
-    -p 50051:50051 \
-    -p 6640:6640 \
-    -p 6653:6653 \
-    -p 9876:9876 \
-    "${ONOS_IMAGE}" >/dev/null
-fi
+start_onos_container
 
 if container_maps_grpc_base; then
   echo "ERROR: ${ONOS_CONTAINER} still maps host port ${GRPC_BASE}, which conflicts with BMv2 gRPC." >&2
@@ -203,23 +333,27 @@ fi
 
 REST_URL="$(onos_rest_url)"
 
-echo "Waiting for ONOS REST API at ${REST_URL} using ${ONOS_REST_MODE} mode..."
-ready=0
-for _ in $(seq 1 "${ONOS_WAIT_RETRIES}"); do
-  if onos_curl "${REST_URL}/onos/v1/applications" >/dev/null 2>&1; then
-    ready=1
-    break
+if ! wait_for_onos_ready; then
+  if [[ "${RECREATE_UNHEALTHY_ONOS}" == "1" && "${ONOS_CONTAINER_RECREATED}" != "1" ]]; then
+    echo "ONOS application service did not become ready; recreating ${ONOS_CONTAINER} once..."
+    onos_print_diagnostics
+    remove_onos_container
+    start_onos_container
+    if container_maps_grpc_base; then
+      echo "ERROR: ${ONOS_CONTAINER} maps host port ${GRPC_BASE}, which conflicts with BMv2 gRPC." >&2
+      echo "       Rerun with RECREATE_ONOS=1 or choose another GRPC_BASE for both scripts." >&2
+      exit 1
+    fi
+    if ! wait_for_onos_ready; then
+      echo "ONOS application service is not ready after recreating ${ONOS_CONTAINER}: ${REST_URL}" >&2
+      onos_print_diagnostics
+      exit 1
+    fi
+  else
+    echo "ONOS application service is not ready: ${REST_URL} using ${ONOS_REST_MODE} mode" >&2
+    onos_print_diagnostics
+    exit 1
   fi
-  sleep "${ONOS_WAIT_SECONDS}"
-done
-
-if [[ "${ready}" != "1" ]]; then
-  echo "ONOS REST API is not ready: ${REST_URL} using ${ONOS_REST_MODE} mode" >&2
-  echo "Container status:" >&2
-  "${DOCKER[@]}" ps --filter "name=^/${ONOS_CONTAINER}$" --format '  {{.Names}} {{.Status}} {{.Ports}}' >&2 || true
-  echo "Recent ONOS logs:" >&2
-  "${DOCKER[@]}" logs --tail 40 "${ONOS_CONTAINER}" >&2 || true
-  exit 1
 fi
 
 if [[ "${BUILD_APP}" == "1" ]]; then
@@ -236,9 +370,14 @@ fi
 
 echo "Activating ONOS base apps..."
 base_apps=(
-  org.onosproject.drivers.bmv2
+  org.onosproject.drivers
   org.onosproject.protocols.grpc
   org.onosproject.protocols.p4runtime
+  org.onosproject.p4runtime
+  org.onosproject.drivers.p4runtime
+  org.onosproject.pipelines.basic
+  org.onosproject.drivers.stratum
+  org.onosproject.drivers.bmv2
   org.onosproject.lldpprovider
   org.onosproject.netcfglinksprovider
   org.onosproject.netcfghostprovider
