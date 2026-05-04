@@ -24,6 +24,8 @@ RECREATE_UNHEALTHY_ONOS="${RECREATE_UNHEALTHY_ONOS:-1}"
 ROUTERS="${ROUTERS:-2}"
 HOSTS_PER_ROUTER="${HOSTS_PER_ROUTER:-1}"
 TOPOLOGY="${TOPOLOGY:-linear}"
+LINK_BW="${LINK_BW:-}"
+LINK_DELAY="${LINK_DELAY:-}"
 GRPC_BASE="${GRPC_BASE:-9559}"
 DEVICE_ID_BASE="${DEVICE_ID_BASE:-0}"
 
@@ -446,4 +448,15 @@ echo "  netcfg IP:      ${NETCFG_IP}"
 echo "  topology:       ${TOPOLOGY}, routers=${ROUTERS}, hosts/router=${HOSTS_PER_ROUTER}"
 echo
 echo "Start Mininet with matching parameters:"
-echo "  ROUTERS=${ROUTERS} HOSTS_PER_ROUTER=${HOSTS_PER_ROUTER} TOPOLOGY=${TOPOLOGY} ./env/create_mininet.sh"
+MININET_ENV=(
+  "ROUTERS=${ROUTERS}"
+  "HOSTS_PER_ROUTER=${HOSTS_PER_ROUTER}"
+  "TOPOLOGY=${TOPOLOGY}"
+)
+if [[ -n "${LINK_BW}" ]]; then
+  MININET_ENV+=("LINK_BW=${LINK_BW}")
+fi
+if [[ -n "${LINK_DELAY}" ]]; then
+  MININET_ENV+=("LINK_DELAY=${LINK_DELAY}")
+fi
+echo "  ${MININET_ENV[*]} ./env/create_mininet.sh"

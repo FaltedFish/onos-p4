@@ -97,12 +97,20 @@ ROUTERS=4 HOSTS_PER_ROUTER=2 TOPOLOGY=ring ./env/create_onos.sh
 ROUTERS=4 HOSTS_PER_ROUTER=2 TOPOLOGY=ring ./env/create_mininet.sh
 ```
 
+指定所有 Mininet 链路的带宽和延迟：
+
+```bash
+ROUTERS=4 HOSTS_PER_ROUTER=2 TOPOLOGY=ring LINK_BW=10 LINK_DELAY=5ms ./env/create_mininet.sh
+```
+
 常用参数：
 
 ```text
 ROUTERS              路由器数量，默认 2
 HOSTS_PER_ROUTER     每台路由器挂载主机数，默认 1
 TOPOLOGY             linear、ring 或 mesh，默认 linear
+LINK_BW              Mininet 链路带宽，单位 Mbit/s，例如 10
+LINK_DELAY           Mininet 链路延迟，例如 5ms、100us 或 1s
 NETCFG_IP            ONOS 访问 BMv2 gRPC 的地址，Docker ONOS 默认 172.20.0.1
 ONOS_URL             ONOS REST 地址，默认 http://127.0.0.1:8181
 ONOS_AUTH            ONOS REST 认证，默认 onos:rocks
@@ -314,6 +322,8 @@ sudo python3 ./mininet/multi_router_p4runtime.py \
   --grpc-exe /usr/bin/simple_switch_grpc \
   --num-routers 2 \
   --topology linear \
+  --link-bw 10 \
+  --link-delay 5ms \
   --cpu-port 255
 ```
 

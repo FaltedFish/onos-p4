@@ -28,9 +28,17 @@ class P4Host(Host):
 
         self.defaultIntf().rename("eth0")
 
-        for off in ["rx", "tx", "sg"]:
-            cmd = "/sbin/ethtool --offload eth0 %s off" % off
-            self.cmd(cmd)
+        ethtool = self.cmd(
+            "if command -v ethtool >/dev/null 2>&1; then "
+            "command -v ethtool; "
+            "elif [ -x /sbin/ethtool ]; then echo /sbin/ethtool; "
+            "elif [ -x /usr/sbin/ethtool ]; then echo /usr/sbin/ethtool; "
+            "fi").strip()
+        if ethtool:
+            for off in ["rx", "tx", "sg", "tso", "gso", "gro", "lro"]:
+                self.cmd("%s -K eth0 %s off >/dev/null 2>&1 || true" % (ethtool, off))
+        else:
+            info("*** WARNING: ethtool not found; TCP/UDP through BMv2 may fail due to checksum offload.\n")
 
         # disable IPv6
         self.cmd("sysctl -w net.ipv6.conf.all.disable_ipv6=1")

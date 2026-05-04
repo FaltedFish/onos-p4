@@ -24,6 +24,7 @@ Switches connect to ONOS controller via P4Runtime gRPC.
 from mininet.net import Mininet
 from mininet.topo import Topo
 from mininet.node import Switch
+from mininet.link import TCLink
 from mininet.log import setLogLevel, info, error, debug
 from mininet.moduledeps import pathCheck
 from mininet.cli import CLI
@@ -59,6 +60,12 @@ parser.add_argument('--num-hosts-per-router', help='Number of hosts per router',
                     type=int, action="store", default=1)
 parser.add_argument('--topology', choices=['linear', 'ring', 'mesh'],
                     type=str, default='ring')
+parser.add_argument('--link-bw',
+                    help='Mininet link bandwidth in Mbit/s, passed to TCLink bw',
+                    type=float, action="store", default=None)
+parser.add_argument('--link-delay',
+                    help="Mininet link delay, e.g. '5ms' or '100us', passed to TCLink delay",
+                    type=str, action="store", default=None)
 parser.add_argument('--onos-ip', help='ONOS controller IP address',
                     type=str, action="store", default="127.0.0.1")
 parser.add_argument('--cpu-port', help='CPU port number',
@@ -69,6 +76,10 @@ parser.add_argument('--pcap-dump', help='Dump packets to pcap files',
                     action='store_true', default=False)
 
 args = parser.parse_args()
+if args.link_bw is not None and args.link_bw <= 0:
+    parser.error("--link-bw must be greater than 0")
+if args.link_delay is not None and not args.link_delay.strip():
+    parser.error("--link-delay must not be empty")
 
 
 class P4SwitchGrpc(Switch):
@@ -183,8 +194,9 @@ class MultiRouterP4Topo(Topo):
     def __init__(self, sw_path, json_path, p4info_path,
                  grpc_base, thrift_base, cpu_port, device_id_base,
                  onos_ip, num_routers, hosts_per_router,
-                 pcap_dump, topology, **opts):
+                 pcap_dump, topology, link_opts=None, **opts):
         Topo.__init__(self, **opts)
+        link_opts = dict(link_opts or {})
 
         for i in range(num_routers):
             self.addSwitch(
@@ -195,15 +207,21 @@ class MultiRouterP4Topo(Topo):
 
         if topology == 'ring':
             for i in range(num_routers):
-                self.addLink('r{}'.format(i + 1), 'r{}'.format((i + 1) % num_routers + 1))
+                self.addLink('r{}'.format(i + 1),
+                             'r{}'.format((i + 1) % num_routers + 1),
+                             **link_opts)
         elif topology == 'linear':
             for i in range(num_routers - 1):
-                self.addLink('r{}'.format(i + 1), 'r{}'.format(i + 2))
+                self.addLink('r{}'.format(i + 1),
+                             'r{}'.format(i + 2),
+                             **link_opts)
         elif topology == 'mesh':
             for i in range(num_routers):
                 for j in range(1, 3):
                     if i + j < num_routers:
-                        self.addLink('r{}'.format(i + 1), 'r{}'.format(i + j + 1))
+                        self.addLink('r{}'.format(i + 1),
+                                     'r{}'.format(i + j + 1),
+                                     **link_opts)
 
         host_idx = 0
         for i in range(num_routers):
@@ -215,7 +233,7 @@ class MultiRouterP4Topo(Topo):
                     ip=None,
                     mac='00:04:00:00:{:02x}:{:02x}'.format(i, h)
                 )
-                self.addLink(host_name, 'r{}'.format(i + 1))
+                self.addLink(host_name, 'r{}'.format(i + 1), **link_opts)
                 host_idx += 1
 
 
@@ -232,17 +250,29 @@ def main():
 
     num_routers = args.num_routers
     hosts_per_router = args.num_hosts_per_router
+    link_opts = {}
+    if args.link_bw is not None:
+        link_opts['bw'] = args.link_bw
+    if args.link_delay is not None:
+        link_opts['delay'] = args.link_delay
 
     info("Creating {}-router {} topology\n".format(num_routers, args.topology))
+    if link_opts:
+        info("Link options: {}\n".format(
+            ", ".join("{}={}".format(k, v) for k, v in sorted(link_opts.items()))))
     
     topo = MultiRouterP4Topo(
         sw_path=args.grpc_exe, json_path=args.json, p4info_path=args.p4info,
         grpc_base=args.grpc_port_base, thrift_base=args.thrift_port_base, cpu_port=args.cpu_port,
         device_id_base=args.device_id_base, onos_ip=args.onos_ip, num_routers=num_routers,
-        hosts_per_router=hosts_per_router, pcap_dump=args.pcap_dump, topology=args.topology
+        hosts_per_router=hosts_per_router, pcap_dump=args.pcap_dump, topology=args.topology,
+        link_opts=link_opts
     )
 
-    net = Mininet(topo=topo, host=P4Host, switch=P4SwitchGrpc, controller=None)
+    net_kwargs = dict(topo=topo, host=P4Host, switch=P4SwitchGrpc, controller=None)
+    if link_opts:
+        net_kwargs['link'] = TCLink
+    net = Mininet(**net_kwargs)
 
     info("Starting network...\n")
     net.start()

@@ -11,6 +11,8 @@ P4INFO_PATH="${P4INFO_PATH:-${ROOT_DIR}/p4build/ngsdn_tutorial.p4info.pb.txt}"
 ROUTERS="${ROUTERS:-2}"
 HOSTS_PER_ROUTER="${HOSTS_PER_ROUTER:-1}"
 TOPOLOGY="${TOPOLOGY:-linear}"
+LINK_BW="${LINK_BW:-}"
+LINK_DELAY="${LINK_DELAY:-}"
 THRIFT_PORT_BASE="${THRIFT_PORT_BASE:-9090}"
 GRPC_BASE="${GRPC_BASE:-9559}"
 DEVICE_ID_BASE="${DEVICE_ID_BASE:-0}"
@@ -72,6 +74,14 @@ args=(
   --onos-ip "${ONOS_IP}"
 )
 
+if [[ -n "${LINK_BW}" ]]; then
+  args+=(--link-bw "${LINK_BW}")
+fi
+
+if [[ -n "${LINK_DELAY}" ]]; then
+  args+=(--link-delay "${LINK_DELAY}")
+fi
+
 if [[ "${PCAP_DUMP}" == "1" ]]; then
   args+=(--pcap-dump)
 fi
@@ -82,6 +92,10 @@ echo "  topology:       ${TOPOLOGY}, routers=${ROUTERS}, hosts/router=${HOSTS_PE
 echo "  BMv2 JSON:      ${JSON_PATH}"
 echo "  P4Info:         ${P4INFO_PATH}"
 echo "  gRPC base port: ${GRPC_BASE}"
+if [[ -n "${LINK_BW}" || -n "${LINK_DELAY}" ]]; then
+  echo "  link bw:        ${LINK_BW:-default}"
+  echo "  link delay:     ${LINK_DELAY:-default}"
+fi
 echo
 
 exec "${SUDO[@]}" "${args[@]}"
