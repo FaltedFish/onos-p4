@@ -3,6 +3,7 @@
 /home/p4/onos-ngsdn-app/src/main/java/org/onosproject/ngsdn/tutorial/cli/Srv6ClearCommand.java
 /home/p4/onos-ngsdn-app/src/main/java/org/onosproject/ngsdn/tutorial/NdpReplyComponent.java
 /home/p4/onos-ngsdn-app/src/main/java/org/onosproject/ngsdn/tutorial/pipeconf/InterpreterImpl.java
+/home/p4/onos-ngsdn-app/src/main/java/org/onosproject/ngsdn/tutorial/StaticNetcfgLinkProvider.java
 /home/p4/onos-ngsdn-app/src/main/java/org/onosproject/ngsdn/tutorial/common/package-info.java
 /home/p4/onos-ngsdn-app/src/main/java/org/onosproject/ngsdn/tutorial/cli/Srv6InsertCommand.java
 /home/p4/onos-ngsdn-app/src/main/java/org/onosproject/ngsdn/tutorial/L2BridgingComponent.java
