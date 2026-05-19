@@ -16,8 +16,8 @@
 
 package org.onosproject.ngsdn.tutorial;
 
-import org.onosproject.net.ConnectPoint;
 import org.onosproject.net.DefaultAnnotations;
+import org.onosproject.net.ConnectPoint;
 import org.onosproject.net.DeviceId;
 import org.onosproject.net.Link;
 import org.onosproject.net.LinkKey;
@@ -195,6 +195,9 @@ public class StaticNetcfgLinkProvider extends AbstractProvider implements LinkPr
                 case DEVICE_ADDED:
                 case DEVICE_AVAILABILITY_CHANGED:
                 case DEVICE_REMOVED:
+                case PORT_ADDED:
+                case PORT_UPDATED:
+                case PORT_REMOVED:
                     scheduleSync();
                     break;
                 default:

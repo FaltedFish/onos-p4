@@ -1,62 +1,50 @@
 #!/usr/bin/env python3
-"""Generate ONOS netcfg for mininet/multi_router_p4runtime.py."""
+"""Generate ONOS netcfg from an expanded topology JSON file."""
 
 import argparse
 import json
 from pathlib import Path
 
+from build_topology import build_topology_from_template, load_topology_file
+
 
 DEFAULT_PIPECONF = "org.onosproject.ngsdn-multirouter"
 
 
-def router_mac(router_id):
-    suffix = f"{router_id:04x}"
-    return f"00:aa:00:00:{suffix[:2]}:{suffix[2:]}"
+def strip_prefix(ip_prefix):
+    return ip_prefix.split("/", 1)[0]
 
 
-def host_mac(router_index, host_index):
-    return f"00:04:00:00:{router_index:02x}:{host_index:02x}"
+def device_uri(router_name):
+    return f"device:bmv2:{router_name}"
 
 
-def allocate_ports(num_routers, hosts_per_router, topology):
-    next_port = {router: 1 for router in range(1, num_routers + 1)}
-    host_ports = {}
-    router_links = []
-
-    def add_router_link(left, right):
-        left_port = next_port[left]
-        right_port = next_port[right]
-        router_links.append((left, left_port, right, right_port))
-        next_port[left] += 1
-        next_port[right] += 1
-
-    if topology == "linear":
-        for router in range(1, num_routers):
-            add_router_link(router, router + 1)
-    elif topology == "ring":
-        for router in range(1, num_routers + 1):
-            add_router_link(router, router % num_routers + 1)
-    elif topology == "mesh":
-        for router in range(1, num_routers + 1):
-            for distance in (1, 2):
-                if router + distance <= num_routers:
-                    add_router_link(router, router + distance)
-    else:
-        raise ValueError(f"Unsupported topology: {topology}")
-
-    global_host_id = 1
-    for router in range(1, num_routers + 1):
-        for host in range(1, hosts_per_router + 1):
-            host_ports[(router, host)] = (next_port[router], global_host_id)
-            next_port[router] += 1
-            global_host_id += 1
-
-    return host_ports, router_links
+def router_ports(topology, router_name):
+    ports = set()
+    for link in topology["links"]:
+        for endpoint in ("left", "right"):
+            if link[endpoint]["router"] == router_name:
+                ports.add(link[endpoint]["port"])
+    for host in topology["hosts"]:
+        if host["router"] == router_name:
+            ports.add(host["routerPort"])
+    return sorted(ports)
 
 
-def build_netcfg(args):
-    host_ports, router_links = allocate_ports(
-        args.routers, args.hosts_per_router, args.topology)
+def port_descriptions(topology, router_name):
+    return {
+        str(port): {
+            "number": port,
+            "name": f"{router_name}-p{port}",
+            "enabled": True,
+            "type": "packet",
+            "speed": 10000,
+        }
+        for port in router_ports(topology, router_name)
+    }
+
+
+def build_netcfg(topology, args):
     netcfg = {
         "devices": {},
         "ports": {},
@@ -71,50 +59,50 @@ def build_netcfg(args):
         }
     }
 
-    for router in range(1, args.routers + 1):
-        device_id = args.device_id_base + router - 1
-        device_uri = f"device:bmv2:r{router}"
-        netcfg["devices"][device_uri] = {
+    for router in topology["routers"]:
+        uri = device_uri(router["name"])
+        netcfg["devices"][uri] = {
             "basic": {
-                "name": f"r{router}",
+                "name": router["name"],
                 "driver": args.driver,
                 "pipeconf": args.pipeconf,
                 "managementAddress": (
-                    f"grpc://{args.ip}:{args.grpc_base + router - 1}"
-                    f"?device_id={device_id}"
+                    f"grpc://{args.ip}:{router['grpcPort']}"
+                    f"?device_id={router['deviceId']}"
                 )
             },
             "fabricDeviceConfig": {
-                "myStationMac": router_mac(router),
-                "mySid": f"fc00:0:{router}::",
+                "myStationMac": router["myStationMac"],
+                "mySid": router["mySid"],
                 "isSpine": False
-            }
+            },
+            "ports": port_descriptions(topology, router["name"])
         }
 
-    for (router, host), (port, global_host_id) in sorted(host_ports.items()):
-        device_uri = f"device:bmv2:r{router}"
-        gateway = f"2001:{router}:{host}::254/64"
-        netcfg["ports"][f"{device_uri}/{port}"] = {
+    for host in topology["hosts"]:
+        uri = device_uri(host["router"])
+        port = host["routerPort"]
+        netcfg["ports"][f"{uri}/{port}"] = {
             "interfaces": [
                 {
-                    "name": f"r{router}-h{global_host_id}",
-                    "ips": [gateway]
+                    "name": f"{host['router']}-{host['name']}",
+                    "ips": [host["gateway"]]
                 }
             ]
         }
-
-        mac = host_mac(router - 1, host - 1)
-        netcfg["hosts"][f"{mac}/None"] = {
+        netcfg["hosts"][f"{host['mac']}/None"] = {
             "basic": {
-                "name": f"h{global_host_id}",
-                "ips": [f"2001:{router}:{host}::10"],
-                "locations": [f"{device_uri}/{port}"]
+                "name": host["name"],
+                "ips": [strip_prefix(host["ip"])],
+                "locations": [f"{uri}/{port}"]
             }
         }
 
-    for left, left_port, right, right_port in router_links:
-        left_cp = f"device:bmv2:r{left}/{left_port}"
-        right_cp = f"device:bmv2:r{right}/{right_port}"
+    for link in topology["links"]:
+        left = link["left"]
+        right = link["right"]
+        left_cp = f"{device_uri(left['router'])}/{left['port']}"
+        right_cp = f"{device_uri(right['router'])}/{right['port']}"
         netcfg["links"][f"{left_cp}-{right_cp}"] = {
             "basic": {
                 "type": "DIRECT"
@@ -129,10 +117,24 @@ def build_netcfg(args):
     return netcfg
 
 
+def load_or_build_topology(args):
+    if args.topology_file:
+        return load_topology_file(args.topology_file)
+    return build_topology_from_template(
+        args.routers,
+        args.hosts_per_router,
+        args.topology,
+        grpc_base=args.grpc_base,
+        device_id_base=args.device_id_base,
+    )
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--ip", default="127.0.0.1",
                         help="Address ONOS uses to reach simple_switch_grpc")
+    parser.add_argument("--topology-file",
+                        help="Expanded topology JSON generated by build_topology.py")
     parser.add_argument("--routers", type=int, default=2)
     parser.add_argument("--hosts-per-router", type=int, default=1)
     parser.add_argument("--topology", choices=("linear", "ring", "mesh"),
@@ -144,13 +146,14 @@ def main():
     parser.add_argument("--output", default="netcfg.json")
     args = parser.parse_args()
 
-    if args.routers < 1:
-        raise SystemExit("--routers must be >= 1")
-    if args.hosts_per_router < 1:
-        raise SystemExit("--hosts-per-router must be >= 1")
+    try:
+        topology = load_or_build_topology(args)
+    except ValueError as exc:
+        raise SystemExit(str(exc))
 
     output = Path(args.output)
-    output.write_text(json.dumps(build_netcfg(args), indent=2) + "\n")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(build_netcfg(topology, args), indent=2) + "\n")
     print(f"Wrote {output}")
 
 

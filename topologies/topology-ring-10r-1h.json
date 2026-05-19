@@ -1,0 +1,287 @@
+{
+  "version": 1,
+  "name": "ring-10r-1h",
+  "defaults": {
+    "grpcBase": 9559,
+    "thriftBase": 9090,
+    "deviceIdBase": 0,
+    "cpuPort": 255,
+    "ipv6Prefix": "2001"
+  },
+  "routers": [
+    {
+      "name": "r1",
+      "deviceId": 0,
+      "grpcPort": 9559,
+      "thriftPort": 9090,
+      "cpuPort": 255,
+      "myStationMac": "00:aa:00:00:00:01",
+      "mySid": "fc00:0:1::"
+    },
+    {
+      "name": "r2",
+      "deviceId": 1,
+      "grpcPort": 9560,
+      "thriftPort": 9091,
+      "cpuPort": 255,
+      "myStationMac": "00:aa:00:00:00:02",
+      "mySid": "fc00:0:2::"
+    },
+    {
+      "name": "r3",
+      "deviceId": 2,
+      "grpcPort": 9561,
+      "thriftPort": 9092,
+      "cpuPort": 255,
+      "myStationMac": "00:aa:00:00:00:03",
+      "mySid": "fc00:0:3::"
+    },
+    {
+      "name": "r4",
+      "deviceId": 3,
+      "grpcPort": 9562,
+      "thriftPort": 9093,
+      "cpuPort": 255,
+      "myStationMac": "00:aa:00:00:00:04",
+      "mySid": "fc00:0:4::"
+    },
+    {
+      "name": "r5",
+      "deviceId": 4,
+      "grpcPort": 9563,
+      "thriftPort": 9094,
+      "cpuPort": 255,
+      "myStationMac": "00:aa:00:00:00:05",
+      "mySid": "fc00:0:5::"
+    },
+    {
+      "name": "r6",
+      "deviceId": 5,
+      "grpcPort": 9564,
+      "thriftPort": 9095,
+      "cpuPort": 255,
+      "myStationMac": "00:aa:00:00:00:06",
+      "mySid": "fc00:0:6::"
+    },
+    {
+      "name": "r7",
+      "deviceId": 6,
+      "grpcPort": 9565,
+      "thriftPort": 9096,
+      "cpuPort": 255,
+      "myStationMac": "00:aa:00:00:00:07",
+      "mySid": "fc00:0:7::"
+    },
+    {
+      "name": "r8",
+      "deviceId": 7,
+      "grpcPort": 9566,
+      "thriftPort": 9097,
+      "cpuPort": 255,
+      "myStationMac": "00:aa:00:00:00:08",
+      "mySid": "fc00:0:8::"
+    },
+    {
+      "name": "r9",
+      "deviceId": 8,
+      "grpcPort": 9567,
+      "thriftPort": 9098,
+      "cpuPort": 255,
+      "myStationMac": "00:aa:00:00:00:09",
+      "mySid": "fc00:0:9::"
+    },
+    {
+      "name": "r10",
+      "deviceId": 9,
+      "grpcPort": 9568,
+      "thriftPort": 9099,
+      "cpuPort": 255,
+      "myStationMac": "00:aa:00:00:00:0a",
+      "mySid": "fc00:0:10::"
+    }
+  ],
+  "links": [
+    {
+      "left": {
+        "router": "r1",
+        "port": 1
+      },
+      "right": {
+        "router": "r2",
+        "port": 1
+      }
+    },
+    {
+      "left": {
+        "router": "r2",
+        "port": 2
+      },
+      "right": {
+        "router": "r3",
+        "port": 1
+      }
+    },
+    {
+      "left": {
+        "router": "r3",
+        "port": 2
+      },
+      "right": {
+        "router": "r4",
+        "port": 1
+      }
+    },
+    {
+      "left": {
+        "router": "r4",
+        "port": 2
+      },
+      "right": {
+        "router": "r5",
+        "port": 1
+      }
+    },
+    {
+      "left": {
+        "router": "r5",
+        "port": 2
+      },
+      "right": {
+        "router": "r6",
+        "port": 1
+      }
+    },
+    {
+      "left": {
+        "router": "r6",
+        "port": 2
+      },
+      "right": {
+        "router": "r7",
+        "port": 1
+      }
+    },
+    {
+      "left": {
+        "router": "r7",
+        "port": 2
+      },
+      "right": {
+        "router": "r8",
+        "port": 1
+      }
+    },
+    {
+      "left": {
+        "router": "r8",
+        "port": 2
+      },
+      "right": {
+        "router": "r9",
+        "port": 1
+      }
+    },
+    {
+      "left": {
+        "router": "r9",
+        "port": 2
+      },
+      "right": {
+        "router": "r10",
+        "port": 1
+      }
+    },
+    {
+      "left": {
+        "router": "r10",
+        "port": 2
+      },
+      "right": {
+        "router": "r1",
+        "port": 2
+      }
+    }
+  ],
+  "hosts": [
+    {
+      "name": "h1",
+      "router": "r1",
+      "routerPort": 3,
+      "mac": "00:04:00:00:00:00",
+      "ip": "2001:1:1::10/64",
+      "gateway": "2001:1:1::254/64"
+    },
+    {
+      "name": "h2",
+      "router": "r2",
+      "routerPort": 3,
+      "mac": "00:04:00:00:01:00",
+      "ip": "2001:2:1::10/64",
+      "gateway": "2001:2:1::254/64"
+    },
+    {
+      "name": "h3",
+      "router": "r3",
+      "routerPort": 3,
+      "mac": "00:04:00:00:02:00",
+      "ip": "2001:3:1::10/64",
+      "gateway": "2001:3:1::254/64"
+    },
+    {
+      "name": "h4",
+      "router": "r4",
+      "routerPort": 3,
+      "mac": "00:04:00:00:03:00",
+      "ip": "2001:4:1::10/64",
+      "gateway": "2001:4:1::254/64"
+    },
+    {
+      "name": "h5",
+      "router": "r5",
+      "routerPort": 3,
+      "mac": "00:04:00:00:04:00",
+      "ip": "2001:5:1::10/64",
+      "gateway": "2001:5:1::254/64"
+    },
+    {
+      "name": "h6",
+      "router": "r6",
+      "routerPort": 3,
+      "mac": "00:04:00:00:05:00",
+      "ip": "2001:6:1::10/64",
+      "gateway": "2001:6:1::254/64"
+    },
+    {
+      "name": "h7",
+      "router": "r7",
+      "routerPort": 3,
+      "mac": "00:04:00:00:06:00",
+      "ip": "2001:7:1::10/64",
+      "gateway": "2001:7:1::254/64"
+    },
+    {
+      "name": "h8",
+      "router": "r8",
+      "routerPort": 3,
+      "mac": "00:04:00:00:07:00",
+      "ip": "2001:8:1::10/64",
+      "gateway": "2001:8:1::254/64"
+    },
+    {
+      "name": "h9",
+      "router": "r9",
+      "routerPort": 3,
+      "mac": "00:04:00:00:08:00",
+      "ip": "2001:9:1::10/64",
+      "gateway": "2001:9:1::254/64"
+    },
+    {
+      "name": "h10",
+      "router": "r10",
+      "routerPort": 3,
+      "mac": "00:04:00:00:09:00",
+      "ip": "2001:10:1::10/64",
+      "gateway": "2001:10:1::254/64"
+    }
+  ]
+}

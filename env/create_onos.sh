@@ -21,13 +21,23 @@ RECREATE_ONOS_NETWORK="${RECREATE_ONOS_NETWORK:-0}"
 CLEAN_STALE_ONOS_NETWORK="${CLEAN_STALE_ONOS_NETWORK:-1}"
 RECREATE_UNHEALTHY_ONOS="${RECREATE_UNHEALTHY_ONOS:-1}"
 
+THRIFT_PORT_BASE_EXPLICIT="${THRIFT_PORT_BASE+x}"
+GRPC_BASE_EXPLICIT="${GRPC_BASE+x}"
+DEVICE_ID_BASE_EXPLICIT="${DEVICE_ID_BASE+x}"
+CPU_PORT_EXPLICIT="${CPU_PORT+x}"
+
 ROUTERS="${ROUTERS:-2}"
 HOSTS_PER_ROUTER="${HOSTS_PER_ROUTER:-1}"
 TOPOLOGY="${TOPOLOGY:-linear}"
+TOPOLOGY_CONFIG="${TOPOLOGY_CONFIG:-}"
+TOPOLOGY_FILE="${TOPOLOGY_FILE:-}"
+TOPOLOGY_FILE_EXPLICIT=0
 LINK_BW="${LINK_BW:-}"
 LINK_DELAY="${LINK_DELAY:-}"
 GRPC_BASE="${GRPC_BASE:-9559}"
+THRIFT_PORT_BASE="${THRIFT_PORT_BASE:-9090}"
 DEVICE_ID_BASE="${DEVICE_ID_BASE:-0}"
+CPU_PORT="${CPU_PORT:-255}"
 
 # ONOS runs in Docker by default, so it must use the host-side Docker bridge
 # address to reach BMv2 simple_switch_grpc processes started by Mininet.
@@ -38,7 +48,27 @@ if [[ -z "${NETCFG_IP:-}" ]]; then
     NETCFG_IP="${ONOS_DOCKER_GATEWAY}"
   fi
 fi
-NETCFG_FILE="${NETCFG_FILE:-target/env/netcfg-${TOPOLOGY}-${ROUTERS}r-${HOSTS_PER_ROUTER}h.json}"
+if [[ -n "${TOPOLOGY_FILE}" ]]; then
+  TOPOLOGY_FILE_EXPLICIT=1
+  TOPOLOGY_NAME="$(basename "${TOPOLOGY_FILE}")"
+  TOPOLOGY_NAME="${TOPOLOGY_NAME%.*}"
+  TOPOLOGY_NAME="${TOPOLOGY_NAME#topology-}"
+else
+  if [[ -n "${TOPOLOGY_CONFIG}" ]]; then
+    TOPOLOGY_NAME="$(basename "${TOPOLOGY_CONFIG}")"
+    TOPOLOGY_NAME="${TOPOLOGY_NAME%.*}"
+    TOPOLOGY_FILE="target/env/topology-${TOPOLOGY_NAME}.json"
+  else
+    TOPOLOGY_FILE="target/env/topology-${TOPOLOGY}-${ROUTERS}r-${HOSTS_PER_ROUTER}h.json"
+  fi
+fi
+if [[ -n "${NETCFG_FILE:-}" ]]; then
+  NETCFG_FILE="${NETCFG_FILE}"
+elif [[ -n "${TOPOLOGY_CONFIG}" || "${TOPOLOGY_FILE_EXPLICIT}" == "1" ]]; then
+  NETCFG_FILE="target/env/netcfg-${TOPOLOGY_NAME}.json"
+else
+  NETCFG_FILE="target/env/netcfg-${TOPOLOGY}-${ROUTERS}r-${HOSTS_PER_ROUTER}h.json"
+fi
 
 BUILD_APP="${BUILD_APP:-1}"
 BUILD_P4="${BUILD_P4:-1}"
@@ -415,15 +445,51 @@ else
     --data-binary @"${OAR_FILE}" >/dev/null
 fi
 
+if [[ "${TOPOLOGY_FILE_EXPLICIT}" == "1" ]]; then
+  if [[ ! -f "${TOPOLOGY_FILE}" ]]; then
+    echo "Topology file not found: ${TOPOLOGY_FILE}" >&2
+    exit 1
+  fi
+else
+  echo "Preparing topology ${TOPOLOGY_FILE}..."
+  mkdir -p "$(dirname "${TOPOLOGY_FILE}")"
+  topology_args=(
+    ./tools/build_topology.py
+    --output "${TOPOLOGY_FILE}"
+  )
+  if [[ -n "${TOPOLOGY_CONFIG}" ]]; then
+    topology_args+=(--config "${TOPOLOGY_CONFIG}")
+    if [[ -n "${GRPC_BASE_EXPLICIT}" ]]; then
+      topology_args+=(--grpc-base "${GRPC_BASE}")
+    fi
+    if [[ -n "${THRIFT_PORT_BASE_EXPLICIT}" ]]; then
+      topology_args+=(--thrift-base "${THRIFT_PORT_BASE}")
+    fi
+    if [[ -n "${DEVICE_ID_BASE_EXPLICIT}" ]]; then
+      topology_args+=(--device-id-base "${DEVICE_ID_BASE}")
+    fi
+    if [[ -n "${CPU_PORT_EXPLICIT}" ]]; then
+      topology_args+=(--cpu-port "${CPU_PORT}")
+    fi
+  else
+    topology_args+=(
+      --grpc-base "${GRPC_BASE}"
+      --thrift-base "${THRIFT_PORT_BASE}"
+      --device-id-base "${DEVICE_ID_BASE}"
+      --cpu-port "${CPU_PORT}"
+      --routers "${ROUTERS}"
+      --hosts-per-router "${HOSTS_PER_ROUTER}"
+      --topology "${TOPOLOGY}"
+    )
+  fi
+  "${topology_args[@]}"
+fi
+
 echo "Generating netcfg ${NETCFG_FILE}..."
 mkdir -p "$(dirname "${NETCFG_FILE}")"
 ./tools/build_netcfg.py \
   --ip "${NETCFG_IP}" \
-  --routers "${ROUTERS}" \
-  --hosts-per-router "${HOSTS_PER_ROUTER}" \
-  --topology "${TOPOLOGY}" \
-  --grpc-base "${GRPC_BASE}" \
-  --device-id-base "${DEVICE_ID_BASE}" \
+  --topology-file "${TOPOLOGY_FILE}" \
   --output "${NETCFG_FILE}"
 
 echo "Pushing netcfg to ONOS..."
@@ -445,14 +511,17 @@ echo "  ONOS URL:       ${ONOS_URL}"
 echo "  REST mode:      ${ONOS_REST_MODE}"
 echo "  Docker network: ${ONOS_DOCKER_NETWORK}"
 echo "  netcfg IP:      ${NETCFG_IP}"
-echo "  topology:       ${TOPOLOGY}, routers=${ROUTERS}, hosts/router=${HOSTS_PER_ROUTER}"
+echo "  topology file:  ${TOPOLOGY_FILE}"
+if [[ "${TOPOLOGY_FILE_EXPLICIT}" == "1" ]]; then
+  :
+elif [[ -n "${TOPOLOGY_CONFIG}" ]]; then
+  echo "  config file:    ${TOPOLOGY_CONFIG}"
+else
+  echo "  template:       ${TOPOLOGY}, routers=${ROUTERS}, hosts/router=${HOSTS_PER_ROUTER}"
+fi
 echo
 echo "Start Mininet with matching parameters:"
-MININET_ENV=(
-  "ROUTERS=${ROUTERS}"
-  "HOSTS_PER_ROUTER=${HOSTS_PER_ROUTER}"
-  "TOPOLOGY=${TOPOLOGY}"
-)
+MININET_ENV=("TOPOLOGY_FILE=${TOPOLOGY_FILE}")
 if [[ -n "${LINK_BW}" ]]; then
   MININET_ENV+=("LINK_BW=${LINK_BW}")
 fi

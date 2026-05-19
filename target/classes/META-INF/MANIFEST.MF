@@ -1,5 +1,5 @@
 Manifest-Version: 1.0
-Bnd-LastModified: 1778596512313
+Bnd-LastModified: 1779206370123
 Build-Jdk: 11.0.27
 Built-By: p4
 Bundle-Description: NG-SDN multi-router app for BMv2 simple_switch_grpc
@@ -9,23 +9,23 @@ Bundle-Name: ngsdn-multirouter
 Bundle-SymbolicName: org.onosproject.ngsdn-multirouter
 Bundle-Version: 1.0.0.SNAPSHOT
 Created-By: Apache Maven Bundle Plugin
-Export-Package: org.onosproject.ngsdn.tutorial;uses:="org.onlab.packet,o
- rg.onosproject.event,org.onosproject.mastership,org.onosproject.net,org
- .onosproject.net.config,org.onosproject.net.device,org.onosproject.net.
- flow,org.onosproject.net.host,org.onosproject.net.intf,org.onosproject.
- net.link,org.onosproject.net.pi.model,org.onosproject.net.provider,org.
- onosproject.ngsdn.tutorial.pipeconf";version="1.0.0",org.onosproject.ng
- sdn.tutorial.pipeconf;uses:="org.onosproject.core,org.onosproject.net,o
- rg.onosproject.net.behaviour,org.onosproject.net.driver,org.onosproject
- .net.flow,org.onosproject.net.flow.criteria,org.onosproject.net.flowobj
- ective,org.onosproject.net.packet,org.onosproject.net.pi.model,org.onos
- project.net.pi.runtime";version="1.0.0",org.onosproject.ngsdn.tutorial.
- common;uses:="org.onlab.packet,org.onosproject.core,org.onosproject.net
- ,org.onosproject.net.config,org.onosproject.net.flow,org.onosproject.ne
- t.flow.criteria,org.onosproject.net.group,org.onosproject.net.pi.runtim
- e";version="1.0.0",org.onosproject.ngsdn.tutorial.cli;uses:="org.apache
- .karaf.shell.api.action,org.apache.karaf.shell.api.action.lifecycle,org
- .apache.karaf.shell.api.console,org.onosproject.cli";version="1.0.0"
+Export-Package: org.onosproject.ngsdn.tutorial;version="1.0.0";uses:="or
+ g.onlab.packet,org.onosproject.event,org.onosproject.mastership,org.ono
+ sproject.net,org.onosproject.net.config,org.onosproject.net.device,org.
+ onosproject.net.flow,org.onosproject.net.host,org.onosproject.net.intf,
+ org.onosproject.net.link,org.onosproject.net.pi.model,org.onosproject.n
+ et.provider,org.onosproject.ngsdn.tutorial.pipeconf",org.onosproject.ng
+ sdn.tutorial.pipeconf;version="1.0.0";uses:="org.onosproject.core,org.o
+ nosproject.net,org.onosproject.net.behaviour,org.onosproject.net.driver
+ ,org.onosproject.net.flow,org.onosproject.net.flow.criteria,org.onospro
+ ject.net.flowobjective,org.onosproject.net.packet,org.onosproject.net.p
+ i.model,org.onosproject.net.pi.runtime",org.onosproject.ngsdn.tutorial.
+ common;version="1.0.0";uses:="org.onlab.packet,org.onosproject.core,org
+ .onosproject.net,org.onosproject.net.config,org.onosproject.net.flow,or
+ g.onosproject.net.flow.criteria,org.onosproject.net.group,org.onosproje
+ ct.net.pi.runtime",org.onosproject.ngsdn.tutorial.cli;version="1.0.0";u
+ ses:="org.apache.karaf.shell.api.action,org.apache.karaf.shell.api.acti
+ on.lifecycle,org.apache.karaf.shell.api.console,org.onosproject.cli"
 Import-Package: com.google.common.base;version="[22.0,23)",com.google.co
  mmon.collect;version="[22.0,23)",org.apache.karaf.shell.api.action;vers
  ion="[4.2,5)",org.apache.karaf.shell.api.action.lifecycle;version="[4.2
@@ -48,16 +48,19 @@ Import-Package: com.google.common.base;version="[22.0,23)",com.google.co
  ;version="[2.7,3)",org.onosproject.net.pi.model;version="[2.7,3)",org.o
  nosproject.net.pi.runtime;version="[2.7,3)",org.onosproject.net.pi.serv
  ice;version="[2.7,3)",org.onosproject.net.provider;version="[2.7,3)",or
- g.onosproject.ngsdn.tutorial,org.onosproject.ngsdn.tutorial.common,org.
- onosproject.ngsdn.tutorial.pipeconf,org.onosproject.p4runtime.model;ver
- sion="[2.7,3)",org.slf4j;version="[1.7,2)"
+ g.onosproject.net.statistic;version="[2.7,3)",org.onosproject.ngsdn.tut
+ orial;version="[1.0,2)",org.onosproject.ngsdn.tutorial.common;version="
+ [1.0,2)",org.onosproject.ngsdn.tutorial.pipeconf;version="[1.0,2)",org.
+ onosproject.p4runtime.model;version="[2.7,3)",org.slf4j;version="[1.7,2
+ )"
 Karaf-Commands: org.onosproject.ngsdn.tutorial.cli
 Provide-Capability: osgi.service;objectClass:List<String>="org.onosproje
- ct.net.link.LinkProvider",osgi.service;objectClass:List<String>="org.on
- osproject.ngsdn.tutorial.MainComponent",osgi.service;objectClass:List<S
- tring>="org.onosproject.ngsdn.tutorial.Srv6Component",osgi.service;obje
- ctClass:List<String>="org.onosproject.ngsdn.tutorial.pipeconf.PipeconfL
- oader"
+ ct.net.device.DeviceProvider",osgi.service;objectClass:List<String>="or
+ g.onosproject.net.link.LinkProvider",osgi.service;objectClass:List<Stri
+ ng>="org.onosproject.ngsdn.tutorial.MainComponent",osgi.service;objectC
+ lass:List<String>="org.onosproject.ngsdn.tutorial.Srv6Component",osgi.s
+ ervice;objectClass:List<String>="org.onosproject.ngsdn.tutorial.pipecon
+ f.PipeconfLoader"
 Require-Capability: osgi.service;filter:="(objectClass=org.onosproject.c
  fg.ComponentConfigService)";effective:=active,osgi.service;filter:="(ob
  jectClass=org.onosproject.core.CoreService)";effective:=active,osgi.ser
@@ -66,24 +69,28 @@ Require-Capability: osgi.service;filter:="(objectClass=org.onosproject.c
  .net.config.NetworkConfigRegistry)";effective:=active,osgi.service;filt
  er:="(objectClass=org.onosproject.net.config.NetworkConfigService)";eff
  ective:=active,osgi.service;filter:="(objectClass=org.onosproject.net.d
- evice.DeviceService)";effective:=active,osgi.service;filter:="(objectCl
- ass=org.onosproject.net.driver.DriverAdminService)";effective:=active,o
- sgi.service;filter:="(objectClass=org.onosproject.net.flow.FlowRuleServ
- ice)";effective:=active,osgi.service;filter:="(objectClass=org.onosproj
- ect.net.group.GroupService)";effective:=active,osgi.service;filter:="(o
- bjectClass=org.onosproject.net.host.HostService)";effective:=active,osg
- i.service;filter:="(objectClass=org.onosproject.net.intf.InterfaceServi
- ce)";effective:=active,osgi.service;filter:="(objectClass=org.onosproje
- ct.net.link.LinkProviderRegistry)";effective:=active,osgi.service;filte
- r:="(objectClass=org.onosproject.net.link.LinkService)";effective:=acti
- ve,osgi.service;filter:="(objectClass=org.onosproject.net.pi.service.Pi
- PipeconfService)";effective:=active,osgi.service;filter:="(objectClass=
- org.onosproject.ngsdn.tutorial.MainComponent)";effective:=active,osgi.s
- ervice;filter:="(objectClass=org.onosproject.ngsdn.tutorial.pipeconf.Pi
- peconfLoader)";effective:=active,osgi.extender;filter:="(&(osgi.extende
- r=osgi.component)(version>=1.4.0)(!(version>=2.0.0)))",osgi.ee;filter:=
- "(&(osgi.ee=JavaSE)(version=11))"
-Service-Component: OSGI-INF/org.onosproject.ngsdn.tutorial.Ipv6RoutingCo
+ evice.DeviceProviderRegistry)";effective:=active,osgi.service;filter:="
+ (objectClass=org.onosproject.net.device.DeviceService)";effective:=acti
+ ve,osgi.service;filter:="(objectClass=org.onosproject.net.driver.Driver
+ AdminService)";effective:=active,osgi.service;filter:="(objectClass=org
+ .onosproject.net.flow.FlowRuleService)";effective:=active,osgi.service;
+ filter:="(objectClass=org.onosproject.net.group.GroupService)";effectiv
+ e:=active,osgi.service;filter:="(objectClass=org.onosproject.net.host.H
+ ostService)";effective:=active,osgi.service;filter:="(objectClass=org.o
+ nosproject.net.intf.InterfaceService)";effective:=active,osgi.service;f
+ ilter:="(objectClass=org.onosproject.net.link.LinkProviderRegistry)";ef
+ fective:=active,osgi.service;filter:="(objectClass=org.onosproject.net.
+ link.LinkService)";effective:=active,osgi.service;filter:="(objectClass
+ =org.onosproject.net.pi.service.PiPipeconfService)";effective:=active,o
+ sgi.service;filter:="(objectClass=org.onosproject.net.statistic.Statist
+ icStore)";effective:=active,osgi.service;filter:="(objectClass=org.onos
+ project.ngsdn.tutorial.MainComponent)";effective:=active,osgi.service;f
+ ilter:="(objectClass=org.onosproject.ngsdn.tutorial.pipeconf.PipeconfLo
+ ader)";effective:=active,osgi.extender;filter:="(&(osgi.extender=osgi.c
+ omponent)(version>=1.4.0)(!(version>=2.0.0)))",osgi.ee;filter:="(&(osgi
+ .ee=JavaSE)(version=11))"
+Service-Component: OSGI-INF/org.onosproject.ngsdn.tutorial.Bmv2PortStati
+ sticsProvider.xml,OSGI-INF/org.onosproject.ngsdn.tutorial.Ipv6RoutingCo
  mponent.xml,OSGI-INF/org.onosproject.ngsdn.tutorial.L2BridgingComponent
  .xml,OSGI-INF/org.onosproject.ngsdn.tutorial.MainComponent.xml,OSGI-INF
  /org.onosproject.ngsdn.tutorial.NdpReplyComponent.xml,OSGI-INF/org.onos

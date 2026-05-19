@@ -312,6 +312,9 @@ public class Ipv6RoutingComponent {
 
     private void setUpRoutesFromDevice(DeviceId deviceId) {
         stream(hostService.getHosts()).forEach(host -> setUpRouteToHost(deviceId, host));
+        stream(deviceService.getAvailableDevices())
+                .map(Device::id)
+                .forEach(dstDeviceId -> setUpRouteToSid(deviceId, dstDeviceId));
     }
 
     private void setUpRouteToHost(DeviceId deviceId, Host host) {
@@ -353,12 +356,54 @@ public class Ipv6RoutingComponent {
         insertInOrder(group, flowRules);
     }
 
+    private void setUpRouteToSid(DeviceId deviceId, DeviceId dstDeviceId) {
+        if (deviceId.equals(dstDeviceId)) {
+            return;
+        }
+
+        final Ip6Address sid = getDeviceConfig(dstDeviceId)
+                .map(FabricDeviceConfig::mySid)
+                .orElse(null);
+        if (sid == null) {
+            log.debug("No mySid config for {}, skip SID route on {}", dstDeviceId, deviceId);
+            return;
+        }
+
+        final Optional<NextHop> nextHop = nextHopToDevice(deviceId, dstDeviceId);
+        if (!nextHop.isPresent()) {
+            log.debug("No path from {} to SID {} on {}, skip", deviceId, sid, dstDeviceId);
+            return;
+        }
+
+        final MacAddress nextHopMac = nextHop.get().mac;
+        final PortNumber outPort = nextHop.get().port;
+        final int groupId = macToGroupId(nextHopMac);
+        final GroupDescription group = createNextHopGroup(
+                groupId, Collections.singleton(nextHopMac), deviceId);
+        final FlowRule flowRule = createRoutingRule(
+                deviceId, Ip6Prefix.valueOf(sid, Ip6Prefix.MAX_MASK_LENGTH), groupId);
+
+        log.info("Adding SID route on {} for {} ({}) via {} port {}",
+                deviceId, dstDeviceId, sid, nextHopMac, outPort);
+
+        flowRuleService.applyFlowRules(createL2NextHopRule(deviceId, nextHopMac, outPort));
+        insertInOrder(group, Collections.singleton(flowRule));
+    }
+
     private Optional<NextHop> nextHopToHost(DeviceId srcDevice, Host host) {
         final HostLocation hostLocation = host.location();
         final DeviceId dstDevice = hostLocation.deviceId();
 
         if (srcDevice.equals(dstDevice)) {
             return Optional.of(new NextHop(host.mac(), hostLocation.port()));
+        }
+
+        return nextHopToDevice(srcDevice, dstDevice);
+    }
+
+    private Optional<NextHop> nextHopToDevice(DeviceId srcDevice, DeviceId dstDevice) {
+        if (srcDevice.equals(dstDevice)) {
+            return Optional.empty();
         }
 
         final Optional<LinkKey> firstHop = shortestPathFirstHop(srcDevice, dstDevice);

@@ -1,0 +1,125 @@
+{
+  "version": 1,
+  "name": "ring-4r-1h",
+  "defaults": {
+    "grpcBase": 9559,
+    "thriftBase": 9090,
+    "deviceIdBase": 0,
+    "cpuPort": 255,
+    "ipv6Prefix": "2001"
+  },
+  "routers": [
+    {
+      "name": "r1",
+      "deviceId": 0,
+      "grpcPort": 9559,
+      "thriftPort": 9090,
+      "cpuPort": 255,
+      "myStationMac": "00:aa:00:00:00:01",
+      "mySid": "fc00:0:1::"
+    },
+    {
+      "name": "r2",
+      "deviceId": 1,
+      "grpcPort": 9560,
+      "thriftPort": 9091,
+      "cpuPort": 255,
+      "myStationMac": "00:aa:00:00:00:02",
+      "mySid": "fc00:0:2::"
+    },
+    {
+      "name": "r3",
+      "deviceId": 2,
+      "grpcPort": 9561,
+      "thriftPort": 9092,
+      "cpuPort": 255,
+      "myStationMac": "00:aa:00:00:00:03",
+      "mySid": "fc00:0:3::"
+    },
+    {
+      "name": "r4",
+      "deviceId": 3,
+      "grpcPort": 9562,
+      "thriftPort": 9093,
+      "cpuPort": 255,
+      "myStationMac": "00:aa:00:00:00:04",
+      "mySid": "fc00:0:4::"
+    }
+  ],
+  "links": [
+    {
+      "left": {
+        "router": "r1",
+        "port": 1
+      },
+      "right": {
+        "router": "r2",
+        "port": 1
+      }
+    },
+    {
+      "left": {
+        "router": "r2",
+        "port": 2
+      },
+      "right": {
+        "router": "r3",
+        "port": 1
+      }
+    },
+    {
+      "left": {
+        "router": "r3",
+        "port": 2
+      },
+      "right": {
+        "router": "r4",
+        "port": 1
+      }
+    },
+    {
+      "left": {
+        "router": "r4",
+        "port": 2
+      },
+      "right": {
+        "router": "r1",
+        "port": 2
+      }
+    }
+  ],
+  "hosts": [
+    {
+      "name": "h1",
+      "router": "r1",
+      "routerPort": 3,
+      "mac": "00:04:00:00:00:00",
+      "ip": "2001:1:1::10/64",
+      "gateway": "2001:1:1::254/64"
+    },
+    {
+      "name": "h2",
+      "router": "r2",
+      "routerPort": 3,
+      "mac": "00:04:00:00:01:00",
+      "ip": "2001:2:1::10/64",
+      "gateway": "2001:2:1::254/64"
+    },
+    {
+      "name": "h3",
+      "router": "r3",
+      "routerPort": 3,
+      "mac": "00:04:00:00:02:00",
+      "ip": "2001:3:1::10/64",
+      "gateway": "2001:3:1::254/64"
+    },
+    {
+      "name": "h4",
+      "router": "r4",
+      "routerPort": 3,
+      "mac": "00:04:00:00:03:00",
+      "ip": "2001:4:1::10/64",
+      "gateway": "2001:4:1::254/64"
+    }
+  ]
+}

@@ -268,12 +268,12 @@ public class L2BridgingComponent {
         // for the fully qualified name of tables, match fields, and actions.
         // ---- START SOLUTION ----
 
-        // Match unmatched traffic - Match ternary **:**:**:**:**:**
+        // Match any destination MAC. ONOS 2.7 does not allow an empty PiCriterion.
         final PiCriterion unmatchedTrafficCriterion = PiCriterion.builder()
                 .matchTernary(
                         PiMatchFieldId.of("hdr.ethernet.dst_addr"),
-                        MacAddress.valueOf("00:00:00:00:00:00").toBytes(),
-                        MacAddress.valueOf("00:00:00:00:00:00").toBytes())
+                        MacAddress.NONE.toBytes(),
+                        MacAddress.NONE.toBytes())
                 .build();
 
         // Action: set multicast group id

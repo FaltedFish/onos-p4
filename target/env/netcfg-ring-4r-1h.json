@@ -11,6 +11,29 @@
         "myStationMac": "00:aa:00:00:00:01",
         "mySid": "fc00:0:1::",
         "isSpine": false
+      },
+      "ports": {
+        "1": {
+          "number": 1,
+          "name": "r1-p1",
+          "enabled": true,
+          "type": "packet",
+          "speed": 10000
+        },
+        "2": {
+          "number": 2,
+          "name": "r1-p2",
+          "enabled": true,
+          "type": "packet",
+          "speed": 10000
+        },
+        "3": {
+          "number": 3,
+          "name": "r1-p3",
+          "enabled": true,
+          "type": "packet",
+          "speed": 10000
+        }
       }
     },
     "device:bmv2:r2": {
@@ -24,6 +47,29 @@
         "myStationMac": "00:aa:00:00:00:02",
         "mySid": "fc00:0:2::",
         "isSpine": false
+      },
+      "ports": {
+        "1": {
+          "number": 1,
+          "name": "r2-p1",
+          "enabled": true,
+          "type": "packet",
+          "speed": 10000
+        },
+        "2": {
+          "number": 2,
+          "name": "r2-p2",
+          "enabled": true,
+          "type": "packet",
+          "speed": 10000
+        },
+        "3": {
+          "number": 3,
+          "name": "r2-p3",
+          "enabled": true,
+          "type": "packet",
+          "speed": 10000
+        }
       }
     },
     "device:bmv2:r3": {
@@ -37,6 +83,29 @@
         "myStationMac": "00:aa:00:00:00:03",
         "mySid": "fc00:0:3::",
         "isSpine": false
+      },
+      "ports": {
+        "1": {
+          "number": 1,
+          "name": "r3-p1",
+          "enabled": true,
+          "type": "packet",
+          "speed": 10000
+        },
+        "2": {
+          "number": 2,
+          "name": "r3-p2",
+          "enabled": true,
+          "type": "packet",
+          "speed": 10000
+        },
+        "3": {
+          "number": 3,
+          "name": "r3-p3",
+          "enabled": true,
+          "type": "packet",
+          "speed": 10000
+        }
       }
     },
     "device:bmv2:r4": {
@@ -50,6 +119,29 @@
         "myStationMac": "00:aa:00:00:00:04",
         "mySid": "fc00:0:4::",
         "isSpine": false
+      },
+      "ports": {
+        "1": {
+          "number": 1,
+          "name": "r4-p1",
+          "enabled": true,
+          "type": "packet",
+          "speed": 10000
+        },
+        "2": {
+          "number": 2,
+          "name": "r4-p2",
+          "enabled": true,
+          "type": "packet",
+          "speed": 10000
+        },
+        "3": {
+          "number": 3,
+          "name": "r4-p3",
+          "enabled": true,
+          "type": "packet",
+          "speed": 10000
+        }
       }
     }
   },
@@ -64,32 +156,12 @@
         }
       ]
     },
-    "device:bmv2:r1/4": {
-      "interfaces": [
-        {
-          "name": "r1-h2",
-          "ips": [
-            "2001:1:2::254/64"
-          ]
-        }
-      ]
-    },
     "device:bmv2:r2/3": {
       "interfaces": [
         {
-          "name": "r2-h3",
+          "name": "r2-h2",
           "ips": [
             "2001:2:1::254/64"
-          ]
-        }
-      ]
-    },
-    "device:bmv2:r2/4": {
-      "interfaces": [
-        {
-          "name": "r2-h4",
-          "ips": [
-            "2001:2:2::254/64"
           ]
         }
       ]
@@ -97,19 +169,9 @@
     "device:bmv2:r3/3": {
       "interfaces": [
         {
-          "name": "r3-h5",
+          "name": "r3-h3",
           "ips": [
             "2001:3:1::254/64"
-          ]
-        }
-      ]
-    },
-    "device:bmv2:r3/4": {
-      "interfaces": [
-        {
-          "name": "r3-h6",
-          "ips": [
-            "2001:3:2::254/64"
           ]
         }
       ]
@@ -117,19 +179,9 @@
     "device:bmv2:r4/3": {
       "interfaces": [
         {
-          "name": "r4-h7",
+          "name": "r4-h4",
           "ips": [
             "2001:4:1::254/64"
-          ]
-        }
-      ]
-    },
-    "device:bmv2:r4/4": {
-      "interfaces": [
-        {
-          "name": "r4-h8",
-          "ips": [
-            "2001:4:2::254/64"
           ]
         }
       ]
@@ -189,20 +241,9 @@
         ]
       }
     },
-    "00:04:00:00:00:01/None": {
-      "basic": {
-        "name": "h2",
-        "ips": [
-          "2001:1:2::10"
-        ],
-        "locations": [
-          "device:bmv2:r1/4"
-        ]
-      }
-    },
     "00:04:00:00:01:00/None": {
       "basic": {
-        "name": "h3",
+        "name": "h2",
         "ips": [
           "2001:2:1::10"
         ],
@@ -211,20 +252,9 @@
         ]
       }
     },
-    "00:04:00:00:01:01/None": {
-      "basic": {
-        "name": "h4",
-        "ips": [
-          "2001:2:2::10"
-        ],
-        "locations": [
-          "device:bmv2:r2/4"
-        ]
-      }
-    },
     "00:04:00:00:02:00/None": {
       "basic": {
-        "name": "h5",
+        "name": "h3",
         "ips": [
           "2001:3:1::10"
         ],
@@ -233,36 +263,14 @@
         ]
       }
     },
-    "00:04:00:00:02:01/None": {
-      "basic": {
-        "name": "h6",
-        "ips": [
-          "2001:3:2::10"
-        ],
-        "locations": [
-          "device:bmv2:r3/4"
-        ]
-      }
-    },
     "00:04:00:00:03:00/None": {
       "basic": {
-        "name": "h7",
+        "name": "h4",
         "ips": [
           "2001:4:1::10"
         ],
         "locations": [
           "device:bmv2:r4/3"
-        ]
-      }
-    },
-    "00:04:00:00:03:01/None": {
-      "basic": {
-        "name": "h8",
-        "ips": [
-          "2001:4:2::10"
-        ],
-        "locations": [
-          "device:bmv2:r4/4"
         ]
       }
     }
