@@ -454,6 +454,10 @@ pingall6
 
 详细用法见 [docs/verify_srv6.md](docs/verify_srv6.md)。
 
+手动插入 SRv6 transit 规则可以使用 `./tools/insert_srv6.py`，按拓扑节点名
+指定路径，例如 `./tools/insert_srv6.py r1 r2 r4 h3`。详细用法见
+[docs/insert_srv6.md](docs/insert_srv6.md)。
+
 SRv6 smoke test 可以用脚本自动完成 ONOS/Mininet 环境准备、SRv6 transit
 规则下发、ping6、抓包和结果判定：
 
