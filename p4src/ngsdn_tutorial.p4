@@ -27,6 +27,7 @@ const bit<8> ICMP6_TYPE_NS = 135;
 const bit<8> ICMP6_TYPE_NA = 136;
 
 const bit<8> NDP_OPT_TARGET_LL_ADDR = 2;
+const bit<32> PORT_COUNTER_SIZE = 512;
 
 const bit<32> NDP_FLAG_ROUTER    = 0x80000000;
 const bit<32> NDP_FLAG_SOLICITED = 0x40000000;
@@ -299,6 +300,9 @@ control IngressPipeImpl (inout parsed_headers_t    hdr,
                          inout local_metadata_t    local_metadata,
                          inout standard_metadata_t standard_metadata) {
 
+    @name("port_ingress_counter")
+    counter(PORT_COUNTER_SIZE, CounterType.packets_and_bytes) port_ingress_counter;
+
     action drop() {
         mark_to_drop(standard_metadata);
     }
@@ -504,6 +508,7 @@ control IngressPipeImpl (inout parsed_headers_t    hdr,
 
     apply {
         local_metadata.ingress_port = standard_metadata.ingress_port;
+        port_ingress_counter.count((bit<32>)standard_metadata.ingress_port);
 
         if (hdr.cpu_out.isValid()) {
             standard_metadata.egress_spec = hdr.cpu_out.egress_port;
@@ -546,17 +551,25 @@ control IngressPipeImpl (inout parsed_headers_t    hdr,
 control EgressPipeImpl (inout parsed_headers_t hdr,
                         inout local_metadata_t local_metadata,
                         inout standard_metadata_t standard_metadata) {
+
+    @name("port_egress_counter")
+    counter(PORT_COUNTER_SIZE, CounterType.packets_and_bytes) port_egress_counter;
+
     apply {
         if (standard_metadata.egress_port == CPU_PORT) {
             hdr.cpu_in.setValid();
             hdr.cpu_in.ingress_port = local_metadata.ingress_port;
+            port_egress_counter.count((bit<32>)standard_metadata.egress_port);
             exit;
         }
 
         if (local_metadata.is_multicast == true &&
               standard_metadata.ingress_port == standard_metadata.egress_port) {
             mark_to_drop(standard_metadata);
+            exit;
         }
+
+        port_egress_counter.count((bit<32>)standard_metadata.egress_port);
     }
 }
 

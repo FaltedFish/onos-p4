@@ -16,19 +16,15 @@
 
 package org.onosproject.ngsdn.tutorial;
 
-import org.onlab.util.ImmutableByteSequence;
 import org.onlab.util.SharedScheduledExecutors;
 import org.onosproject.mastership.MastershipService;
 import org.onosproject.net.ConnectPoint;
 import org.onosproject.net.DeviceId;
-import org.onosproject.net.Link;
 import org.onosproject.net.LinkKey;
 import org.onosproject.net.Port;
 import org.onosproject.net.PortNumber;
 import org.onosproject.net.config.NetworkConfigService;
-import org.onosproject.net.flow.DefaultFlowEntry;
-import org.onosproject.net.flow.DefaultFlowRule;
-import org.onosproject.net.flow.DefaultTrafficTreatment;
+import org.onosproject.net.config.basics.BasicDeviceConfig;
 import org.onosproject.net.device.DefaultPortDescription;
 import org.onosproject.net.device.DefaultPortStatistics;
 import org.onosproject.net.device.DeviceProvider;
@@ -37,21 +33,15 @@ import org.onosproject.net.device.DeviceProviderService;
 import org.onosproject.net.device.DeviceService;
 import org.onosproject.net.device.PortDescription;
 import org.onosproject.net.device.PortStatistics;
-import org.onosproject.net.flow.FlowEntry;
-import org.onosproject.net.flow.FlowRule;
-import org.onosproject.net.flow.FlowRuleService;
-import org.onosproject.net.flow.instructions.Instruction;
-import org.onosproject.net.flow.instructions.PiInstruction;
-import org.onosproject.net.link.LinkService;
-import org.onosproject.net.pi.model.PiActionId;
-import org.onosproject.net.pi.model.PiActionParamId;
-import org.onosproject.net.pi.model.PiTableId;
-import org.onosproject.net.pi.runtime.PiAction;
-import org.onosproject.net.pi.runtime.PiActionParam;
-import org.onosproject.net.pi.runtime.PiTableAction;
+import org.onosproject.net.pi.model.PiCounterId;
+import org.onosproject.net.pi.model.PiPipeconf;
+import org.onosproject.net.pi.runtime.PiCounterCell;
+import org.onosproject.net.pi.service.PiPipeconfService;
 import org.onosproject.net.provider.AbstractProvider;
 import org.onosproject.net.provider.ProviderId;
-import org.onosproject.net.statistic.StatisticStore;
+import org.onosproject.p4runtime.api.P4RuntimeClient;
+import org.onosproject.p4runtime.api.P4RuntimeController;
+import org.onosproject.p4runtime.api.P4RuntimeReadClient;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
@@ -60,13 +50,13 @@ import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
+import java.net.URI;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -76,13 +66,12 @@ import static org.onosproject.ngsdn.tutorial.AppConstants.CPU_PORT_ID;
 import static org.onosproject.ngsdn.tutorial.AppConstants.INITIAL_SETUP_DELAY;
 
 /**
- * Publishes BMv2 flow counters as ONOS port statistics.
+ * Publishes BMv2 P4Runtime counters as ONOS port statistics.
  *
  * <p>The BMv2/P4Runtime driver used in this lab does not expose native port
- * statistics, therefore the ONOS topology UI has no link load data. This
- * provider derives egress port counters from the P4 l2_exact_table direct
- * counters, publishes the netcfg-defined BMv2 ports, and feeds statistics into
- * ONOS' device statistics service and flow statistics store.</p>
+ * statistics. This provider publishes the netcfg-defined BMv2 ports, reads the
+ * P4 per-port ingress and egress counter arrays via P4Runtime, and feeds those
+ * values into ONOS' standard device statistics service.</p>
  */
 @Component(
         immediate = true,
@@ -96,13 +85,12 @@ public class Bmv2PortStatisticsProvider extends AbstractProvider implements Devi
     private static final String PROVIDER_SCHEME = "device";
     private static final String PROVIDER_ID = "org.onosproject.general.provider.device";
     private static final int POLL_INTERVAL_SECONDS = 2;
+    private static final String P4_DEVICE_ID_PARAM = "device_id";
 
-    private static final PiTableId L2_EXACT_TABLE =
-            PiTableId.of("IngressPipeImpl.l2_exact_table");
-    private static final PiActionId SET_EGRESS_PORT =
-            PiActionId.of("IngressPipeImpl.set_egress_port");
-    private static final PiActionParamId PORT_NUM =
-            PiActionParamId.of("port_num");
+    private static final PiCounterId PORT_INGRESS_COUNTER =
+            PiCounterId.of("IngressPipeImpl.port_ingress_counter");
+    private static final PiCounterId PORT_EGRESS_COUNTER =
+            PiCounterId.of("EgressPipeImpl.port_egress_counter");
 
     @Reference(cardinality = ReferenceCardinality.MANDATORY)
     private DeviceProviderRegistry deviceProviderRegistry;
@@ -117,21 +105,15 @@ public class Bmv2PortStatisticsProvider extends AbstractProvider implements Devi
     private NetworkConfigService networkConfigService;
 
     @Reference(cardinality = ReferenceCardinality.MANDATORY)
-    private LinkService linkService;
+    private P4RuntimeController p4RuntimeController;
 
     @Reference(cardinality = ReferenceCardinality.MANDATORY)
-    private FlowRuleService flowRuleService;
-
-    @Reference(cardinality = ReferenceCardinality.MANDATORY)
-    private StatisticStore statisticStore;
+    private PiPipeconfService pipeconfService;
 
     @Reference(cardinality = ReferenceCardinality.MANDATORY)
     private MainComponent mainComponent;
 
     private DeviceProviderService providerService;
-    private final Map<FlowKey, FlowRule> syntheticStatisticRules = new HashMap<>();
-    private final Map<FlowKey, FlowCounterState> flowCounterStates = new HashMap<>();
-    private final Map<DeviceId, Map<PortNumber, MutablePortStats>> syntheticPortCounters = new HashMap<>();
     private volatile boolean active;
 
     public Bmv2PortStatisticsProvider() {
@@ -149,7 +131,6 @@ public class Bmv2PortStatisticsProvider extends AbstractProvider implements Devi
     @Deactivate
     protected void deactivate() {
         active = false;
-        clearSyntheticFlowStatistics();
         if (providerService != null) {
             deviceProviderRegistry.unregister(this);
         }
@@ -199,8 +180,6 @@ public class Bmv2PortStatisticsProvider extends AbstractProvider implements Devi
                 if (shouldPoll(device.id())) {
                     updateConfiguredPorts(device.id());
                     pollDevice(device.id());
-                } else {
-                    removeStaleFlowStatistics(device.id(), new HashSet<>());
                 }
             });
         } catch (RuntimeException e) {
@@ -225,49 +204,20 @@ public class Bmv2PortStatisticsProvider extends AbstractProvider implements Devi
 
     private void pollDevice(DeviceId deviceId) {
         if (!shouldPoll(deviceId)) {
-            removeStaleFlowStatistics(deviceId, new HashSet<>());
             return;
         }
 
         final Set<PortNumber> knownPorts = configuredPorts(deviceId);
         if (knownPorts.isEmpty()) {
-            removeStaleFlowStatistics(deviceId, new HashSet<>());
             return;
         }
 
-        final Set<FlowKey> liveStatisticFlows = new HashSet<>();
-        final List<FlowStatisticUpdate> flowStatisticUpdates = new ArrayList<>();
-
-        try {
-            flowRuleService.getFlowEntries(deviceId).forEach(flowEntry -> {
-                egressPort(flowEntry).ifPresent(portNumber -> {
-                    if (!knownPorts.contains(portNumber)) {
-                        return;
-                    }
-                    flowStatisticUpdates.add(new FlowStatisticUpdate(flowEntry, portNumber));
-                });
-            });
-        } catch (RuntimeException e) {
-            log.debug("Skipping BMv2 statistics poll for {}", deviceId, e);
-            return;
-        }
-
-        Map<PortNumber, MutablePortStats> egressDeltasByPort = new HashMap<>();
-        try {
-            egressDeltasByPort = syncFlowStatistics(flowStatisticUpdates, liveStatisticFlows);
-            removeStaleFlowStatistics(deviceId, liveStatisticFlows);
-        } catch (RuntimeException e) {
-            log.warn("Unable to update BMv2 flow statistics for {}", deviceId, e);
-        }
-
-        final Map<PortNumber, MutablePortStats> statsByPort =
-                advancePortCounters(deviceId, knownPorts, egressDeltasByPort);
-        copyPeerEgressToIngress(deviceId, statsByPort);
-
-        final Collection<PortStatistics> portStatistics = statsByPort.entrySet().stream()
-                .map(entry -> buildPortStatistics(deviceId, entry.getKey(), entry.getValue()))
-                .collect(Collectors.toList());
-        providerService.updatePortStatistics(deviceId, portStatistics);
+        readPortCounters(deviceId, knownPorts).ifPresent(statsByPort -> {
+            final Collection<PortStatistics> portStatistics = statsByPort.entrySet().stream()
+                    .map(entry -> buildPortStatistics(deviceId, entry.getKey(), entry.getValue()))
+                    .collect(Collectors.toList());
+            providerService.updatePortStatistics(deviceId, portStatistics);
+        });
     }
 
     private boolean shouldPoll(DeviceId deviceId) {
@@ -321,109 +271,94 @@ public class Bmv2PortStatisticsProvider extends AbstractProvider implements Devi
                 .build();
     }
 
-    private Optional<PortNumber> egressPort(FlowEntry flowEntry) {
-        if (flowEntry.state() != FlowEntry.FlowEntryState.ADDED ||
-                flowEntry.appId() != mainComponent.getAppId().id() ||
-                !L2_EXACT_TABLE.equals(flowEntry.table())) {
+    private Optional<Map<PortNumber, MutablePortStats>> readPortCounters(
+            DeviceId deviceId, Set<PortNumber> knownPorts) {
+
+        final Optional<Long> p4DeviceId = p4DeviceId(deviceId);
+        if (!p4DeviceId.isPresent()) {
             return Optional.empty();
         }
 
-        for (Instruction instruction : flowEntry.treatment().allInstructions()) {
-            if (instruction.type() != Instruction.Type.PROTOCOL_INDEPENDENT) {
-                continue;
-            }
-            final PiTableAction tableAction = ((PiInstruction) instruction).action();
-            if (tableAction.type() != PiTableAction.Type.ACTION) {
-                continue;
-            }
-            final PiAction action = (PiAction) tableAction;
-            if (!SET_EGRESS_PORT.equals(action.id())) {
-                continue;
-            }
-            return action.parameters().stream()
-                    .filter(param -> PORT_NUM.equals(param.id()))
-                    .findFirst()
-                    .map(this::portNumber);
+        final Optional<PiPipeconf> pipeconf = pipeconfService.getPipeconf(deviceId);
+        if (!pipeconf.isPresent()) {
+            log.debug("Skipping port statistics for {}: pipeconf is not bound", deviceId);
+            return Optional.empty();
         }
-        return Optional.empty();
-    }
 
-    private PortNumber portNumber(PiActionParam param) {
-        return PortNumber.portNumber(unsignedValue(param.value()));
-    }
-
-    private long unsignedValue(ImmutableByteSequence value) {
-        long result = 0;
-        for (byte valueByte : value.asArray()) {
-            result = (result << Byte.SIZE) | (valueByte & 0xff);
+        final P4RuntimeClient client = p4RuntimeController.get(deviceId);
+        if (client == null) {
+            log.debug("Skipping port statistics for {}: P4Runtime client is not available", deviceId);
+            return Optional.empty();
         }
-        return result;
-    }
 
-    private void copyPeerEgressToIngress(DeviceId deviceId,
-                                         Map<PortNumber, MutablePortStats> statsByPort) {
-        networkConfigService.getSubjects(LinkKey.class).forEach(link -> {
-            if (!deviceId.equals(link.src().deviceId())) {
+        final P4RuntimeReadClient.ReadResponse response;
+        try {
+            response = client.read(p4DeviceId.get(), pipeconf.get())
+                    .counterCells(Arrays.asList(PORT_INGRESS_COUNTER, PORT_EGRESS_COUNTER))
+                    .submitSync();
+        } catch (RuntimeException e) {
+            log.debug("Unable to read port counters for {}", deviceId, e);
+            return Optional.empty();
+        }
+
+        if (!response.isSuccess()) {
+            log.debug("Unable to read port counters for {}: {}", deviceId, response.explanation());
+            return Optional.empty();
+        }
+
+        final Map<PortNumber, MutablePortStats> statsByPort = new HashMap<>();
+        knownPorts.forEach(portNumber -> statsByPort.put(portNumber, new MutablePortStats()));
+
+        response.all(PiCounterCell.class).forEach(counterCell -> {
+            final PortNumber portNumber = PortNumber.portNumber(counterCell.cellId().index());
+            final MutablePortStats stats = statsByPort.get(portNumber);
+            if (stats == null) {
                 return;
             }
-            final MutablePortStats localStats = statsByPort.get(link.src().port());
-            if (localStats == null) {
-                return;
+            if (PORT_INGRESS_COUNTER.equals(counterCell.cellId().counterId())) {
+                stats.packetsReceived = counterCell.data().packets();
+                stats.bytesReceived = counterCell.data().bytes();
+            } else if (PORT_EGRESS_COUNTER.equals(counterCell.cellId().counterId())) {
+                stats.packetsSent = counterCell.data().packets();
+                stats.bytesSent = counterCell.data().bytes();
             }
-            final MutablePortStats peerStats = syntheticEgressStats(link.dst().deviceId(), link.dst().port());
-            localStats.packetsReceived = peerStats.packetsSent;
-            localStats.bytesReceived = peerStats.bytesSent;
-            localStats.lastSeen = Math.max(localStats.lastSeen, peerStats.lastSeen);
         });
 
-        for (Link link : linkService.getDeviceEgressLinks(deviceId)) {
-            final MutablePortStats localStats = statsByPort.get(link.src().port());
-            if (localStats == null) {
-                continue;
+        return Optional.of(statsByPort);
+    }
+
+    private Optional<Long> p4DeviceId(DeviceId deviceId) {
+        final BasicDeviceConfig config =
+                networkConfigService.getConfig(deviceId, BasicDeviceConfig.class);
+        if (config == null || config.managementAddress() == null) {
+            log.debug("Skipping port statistics for {}: management address is not configured",
+                      deviceId);
+            return Optional.empty();
+        }
+
+        try {
+            final URI managementAddress = URI.create(config.managementAddress());
+            final String query = managementAddress.getRawQuery();
+            if (query == null) {
+                log.debug("Skipping port statistics for {}: management address has no {} query",
+                          deviceId, P4_DEVICE_ID_PARAM);
+                return Optional.empty();
             }
-            final MutablePortStats peerStats = syntheticEgressStats(link.dst().deviceId(), link.dst().port());
-            localStats.packetsReceived = peerStats.packetsSent;
-            localStats.bytesReceived = peerStats.bytesSent;
-            localStats.lastSeen = Math.max(localStats.lastSeen, peerStats.lastSeen);
-        }
-    }
-
-    private Map<PortNumber, MutablePortStats> advancePortCounters(
-            DeviceId deviceId, Set<PortNumber> knownPorts,
-            Map<PortNumber, MutablePortStats> egressDeltasByPort) {
-        synchronized (syntheticPortCounters) {
-            final Map<PortNumber, MutablePortStats> counters = syntheticPortCounters
-                    .computeIfAbsent(deviceId, unused -> new HashMap<>());
-            knownPorts.forEach(portNumber ->
-                                       counters.computeIfAbsent(portNumber,
-                                                                unused -> new MutablePortStats()));
-            egressDeltasByPort.forEach((portNumber, delta) -> {
-                final MutablePortStats stats = counters.get(portNumber);
-                if (stats == null) {
-                    return;
+            for (String parameter : query.split("&")) {
+                final String[] keyValue = parameter.split("=", 2);
+                if (keyValue.length == 2 && P4_DEVICE_ID_PARAM.equals(keyValue[0])) {
+                    return Optional.of(Long.parseLong(keyValue[1]));
                 }
-                stats.addSent(delta);
-            });
-            return copyStatsByPort(counters, knownPorts);
+            }
+        } catch (IllegalArgumentException e) {
+            log.debug("Skipping port statistics for {}: invalid management address {}",
+                      deviceId, config.managementAddress(), e);
+            return Optional.empty();
         }
-    }
 
-    private MutablePortStats syntheticEgressStats(DeviceId deviceId, PortNumber portNumber) {
-        synchronized (syntheticPortCounters) {
-            return Optional.ofNullable(syntheticPortCounters.get(deviceId))
-                    .map(statsByPort -> statsByPort.get(portNumber))
-                    .map(MutablePortStats::copy)
-                    .orElseGet(MutablePortStats::new);
-        }
-    }
-
-    private Map<PortNumber, MutablePortStats> copyStatsByPort(
-            Map<PortNumber, MutablePortStats> statsByPort, Set<PortNumber> ports) {
-        final Map<PortNumber, MutablePortStats> copy = new HashMap<>();
-        ports.forEach(portNumber ->
-                              Optional.ofNullable(statsByPort.get(portNumber))
-                                      .ifPresent(stats -> copy.put(portNumber, stats.copy())));
-        return copy;
+        log.debug("Skipping port statistics for {}: management address has no {} query",
+                  deviceId, P4_DEVICE_ID_PARAM);
+        return Optional.empty();
     }
 
     private PortStatistics buildPortStatistics(DeviceId deviceId,
@@ -439,200 +374,10 @@ public class Bmv2PortStatisticsProvider extends AbstractProvider implements Devi
                 .build();
     }
 
-    private Map<PortNumber, MutablePortStats> syncFlowStatistics(
-            List<FlowStatisticUpdate> updates, Set<FlowKey> liveStatisticFlows) {
-        final Map<PortNumber, MutablePortStats> egressDeltasByPort = new HashMap<>();
-        synchronized (syntheticStatisticRules) {
-            for (FlowStatisticUpdate update : updates) {
-                final FlowEntry flowEntry = update.flowEntry;
-                final FlowKey key = new FlowKey(flowEntry.deviceId(), flowEntry.id().value());
-                final FlowRule previousRule = syntheticStatisticRules.get(key);
-                final FlowRule syntheticRule = stableSyntheticStatisticRule(
-                        previousRule, flowEntry, update.portNumber);
-                if (previousRule == null) {
-                    statisticStore.prepareForStatistics(syntheticRule);
-                    flowCounterStates.remove(key);
-                } else if (!previousRule.exactMatch(syntheticRule)) {
-                    statisticStore.removeFromStatistics(previousRule);
-                    statisticStore.prepareForStatistics(syntheticRule);
-                    flowCounterStates.remove(key);
-                }
-                syntheticStatisticRules.put(key, syntheticRule);
-                liveStatisticFlows.add(key);
-
-                final FlowCounterState counterState = flowCounterStates.computeIfAbsent(
-                        key, unused -> new FlowCounterState(flowEntry.packets(), flowEntry.bytes()));
-                final MutablePortStats delta = counterState.advance(flowEntry);
-                egressDeltasByPort.computeIfAbsent(update.portNumber,
-                                                   unused -> new MutablePortStats())
-                        .addSent(delta);
-                statisticStore.addOrUpdateStatistic(
-                        new DefaultFlowEntry(
-                                syntheticRule,
-                                flowEntry.state(),
-                                flowEntry.life(),
-                                counterState.syntheticPackets,
-                                counterState.syntheticBytes));
-            }
-        }
-        return egressDeltasByPort;
-    }
-
-    private FlowRule stableSyntheticStatisticRule(FlowRule previousRule,
-                                                  FlowEntry flowEntry,
-                                                  PortNumber portNumber) {
-        final FlowRule syntheticRule = syntheticStatisticRule(flowEntry, portNumber);
-        if (previousRule != null && previousRule.exactMatch(syntheticRule)) {
-            return previousRule;
-        }
-        return syntheticRule;
-    }
-
-    private FlowRule syntheticStatisticRule(FlowEntry flowEntry, PortNumber portNumber) {
-        final FlowRule.Builder builder = DefaultFlowRule.builder()
-                .forDevice(flowEntry.deviceId())
-                .forTable(flowEntry.table())
-                .withSelector(flowEntry.selector())
-                .withTreatment(DefaultTrafficTreatment.builder()
-                                       .setOutput(portNumber)
-                                       .build())
-                .fromApp(mainComponent.getAppId())
-                .withPriority(flowEntry.priority());
-
-        if (flowEntry.isPermanent()) {
-            builder.makePermanent();
-        } else {
-            builder.makeTemporary(flowEntry.timeout())
-                    .withHardTimeout(flowEntry.hardTimeout());
-        }
-        return builder.build();
-    }
-
-    private void removeStaleFlowStatistics(DeviceId deviceId, Set<FlowKey> liveStatisticFlows) {
-        synchronized (syntheticStatisticRules) {
-            final Set<FlowKey> staleKeys = syntheticStatisticRules.keySet().stream()
-                    .filter(key -> key.deviceId.equals(deviceId))
-                    .filter(key -> !liveStatisticFlows.contains(key))
-                    .collect(Collectors.toSet());
-            staleKeys.forEach(key -> {
-                statisticStore.removeFromStatistics(syntheticStatisticRules.get(key));
-                syntheticStatisticRules.remove(key);
-                flowCounterStates.remove(key);
-            });
-        }
-    }
-
-    private void clearSyntheticFlowStatistics() {
-        synchronized (syntheticStatisticRules) {
-            syntheticStatisticRules.values().forEach(statisticStore::removeFromStatistics);
-            syntheticStatisticRules.clear();
-            flowCounterStates.clear();
-        }
-        synchronized (syntheticPortCounters) {
-            syntheticPortCounters.clear();
-        }
-    }
-
     private static final class MutablePortStats {
         private long packetsReceived;
         private long packetsSent;
         private long bytesReceived;
         private long bytesSent;
-        private long lastSeen;
-
-        private void addSent(MutablePortStats delta) {
-            packetsSent = addCounter(packetsSent, delta.packetsSent);
-            bytesSent = addCounter(bytesSent, delta.bytesSent);
-            lastSeen = Math.max(lastSeen, delta.lastSeen);
-        }
-
-        private MutablePortStats copy() {
-            final MutablePortStats copy = new MutablePortStats();
-            copy.packetsReceived = packetsReceived;
-            copy.packetsSent = packetsSent;
-            copy.bytesReceived = bytesReceived;
-            copy.bytesSent = bytesSent;
-            copy.lastSeen = lastSeen;
-            return copy;
-        }
-    }
-
-    private static final class FlowStatisticUpdate {
-        private final FlowEntry flowEntry;
-        private final PortNumber portNumber;
-
-        private FlowStatisticUpdate(FlowEntry flowEntry, PortNumber portNumber) {
-            this.flowEntry = flowEntry;
-            this.portNumber = portNumber;
-        }
-    }
-
-    private static final class FlowCounterState {
-        private long rawPackets;
-        private long rawBytes;
-        private long syntheticPackets;
-        private long syntheticBytes;
-
-        private FlowCounterState(long rawPackets, long rawBytes) {
-            this.rawPackets = rawPackets;
-            this.rawBytes = rawBytes;
-        }
-
-        private MutablePortStats advance(FlowEntry flowEntry) {
-            final long packetDelta = counterDelta(flowEntry.packets(), rawPackets);
-            final long byteDelta = counterDelta(flowEntry.bytes(), rawBytes);
-            rawPackets = flowEntry.packets();
-            rawBytes = flowEntry.bytes();
-            syntheticPackets = addCounter(syntheticPackets, packetDelta);
-            syntheticBytes = addCounter(syntheticBytes, byteDelta);
-
-            final MutablePortStats delta = new MutablePortStats();
-            delta.packetsSent = packetDelta;
-            delta.bytesSent = byteDelta;
-            delta.lastSeen = flowEntry.lastSeen();
-            return delta;
-        }
-    }
-
-    private static long counterDelta(long current, long previous) {
-        if (current < previous) {
-            return current;
-        }
-        return current - previous;
-    }
-
-    private static long addCounter(long counter, long delta) {
-        if (Long.MAX_VALUE - counter < delta) {
-            return Long.MAX_VALUE;
-        }
-        return counter + delta;
-    }
-
-    private static final class FlowKey {
-        private final DeviceId deviceId;
-        private final long flowId;
-
-        private FlowKey(DeviceId deviceId, long flowId) {
-            this.deviceId = deviceId;
-            this.flowId = flowId;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(deviceId, flowId);
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
-            }
-            if (!(obj instanceof FlowKey)) {
-                return false;
-            }
-            final FlowKey other = (FlowKey) obj;
-            return flowId == other.flowId &&
-                    Objects.equals(deviceId, other.deviceId);
-        }
     }
 }

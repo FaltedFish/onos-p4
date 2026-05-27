@@ -1,5 +1,4 @@
 org/onosproject/ngsdn/tutorial/L2BridgingComponent.class
-org/onosproject/ngsdn/tutorial/Bmv2PortStatisticsProvider$FlowKey.class
 org/onosproject/ngsdn/tutorial/cli/Srv6ClearCommand.class
 org/onosproject/ngsdn/tutorial/Bmv2PortStatisticsProvider.class
 org/onosproject/ngsdn/tutorial/Srv6Component.class
@@ -7,10 +6,8 @@ org/onosproject/ngsdn/tutorial/pipeconf/PipeconfLoader.class
 org/onosproject/ngsdn/tutorial/Ipv6RoutingComponent$NextHop.class
 org/onosproject/ngsdn/tutorial/StaticNetcfgLinkProvider$InternalConfigListener.class
 org/onosproject/ngsdn/tutorial/StaticNetcfgLinkProvider$InternalDeviceListener.class
-org/onosproject/ngsdn/tutorial/Bmv2PortStatisticsProvider$FlowCounterState.class
 org/onosproject/ngsdn/tutorial/common/Utils.class
 org/onosproject/ngsdn/tutorial/Ipv6RoutingComponent$InternalDeviceListener.class
-org/onosproject/ngsdn/tutorial/Bmv2PortStatisticsProvider$FlowStatisticUpdate.class
 org/onosproject/ngsdn/tutorial/pipeconf/PipelinerImpl$1.class
 org/onosproject/ngsdn/tutorial/StaticNetcfgLinkProvider$1.class
 org/onosproject/ngsdn/tutorial/NdpReplyComponent$1.class

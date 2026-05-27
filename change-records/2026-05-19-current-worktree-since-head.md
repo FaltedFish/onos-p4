@@ -45,14 +45,12 @@
 
 新增 `Bmv2PortStatisticsProvider`：
 
-- 从 BMv2 flow direct counter 推导端口 egress 统计，并通过 ONOS
-  `DeviceProviderService.updatePortStatistics()` 发布端口统计。
-- 根据静态 netcfg link 和 ONOS link 信息，把对端 egress counter 映射成本端
-  ingress counter。
-- 为 ONOS statistic store 准备 synthetic output flow，使 ONOS link load 能基于
-  BMv2 counter 计算。
-- 记录已发布的 flow `lastSeen` 和端口统计快照，避免把同一份 counter 快照重复
-  写入 ONOS，减少持续 ping 时 Topology 流量显示周期性归零的问题。
+- 在 P4 pipeline 中使用 `port_ingress_counter` 和 `port_egress_counter` 维护
+  per-port ingress/egress 统计。
+- 通过 ONOS P4Runtime read API 读取 counter cell，并通过
+  `DeviceProviderService.updatePortStatistics()` 发布标准端口统计。
+- 不再依赖 flow direct counter、`StatisticStore` synthetic output flow 或对端
+  egress 到本端 ingress 的镜像。
 
 ### L2 unmatched 规则兼容 ONOS 2.7
 
@@ -143,5 +141,4 @@ curl -u onos:rocks -X POST \
 
 - `Bmv2PortStatisticsProvider.java` 当前是未跟踪源码文件，提交时需要显式加入。
 - `target/`、`__pycache__/` 等生成产物也处于工作区变更中，提交前需要决定是否保留。
-- BMv2 端口统计仍基于 ONOS flow counter 轮询，刷新粒度不是实时网卡级统计；
-  修复目标是避免重复发布同一 counter 快照导致 UI 速率窗口被冲成 0。
+- BMv2 端口统计改为基于 P4Runtime counter 轮询，刷新粒度不是实时网卡级统计。

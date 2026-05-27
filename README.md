@@ -450,6 +450,21 @@ h1 ping6 -c 3 2001:2:1::10
 pingall6
 ```
 
+### 流量统计查看
+
+BMv2 端口流量统计通过 P4Runtime per-port counter 上报到 ONOS 标准 port
+statistics。详细说明见 [docs/traffic_statistics.md](docs/traffic_statistics.md)。
+
+快速查看：
+
+```bash
+curl -sS --user onos:rocks \
+  http://127.0.0.1:8181/onos/v1/statistics/ports
+```
+
+ONOS Web Topology 中按 `a` 的 link load overlay 可能不会消费这份标准 port
+statistics；判断当前计数链路是否正常时，以 REST port statistics 为准。
+
 ### SRv6 自动化验证
 
 详细用法见 [docs/verify_srv6.md](docs/verify_srv6.md)。

@@ -373,6 +373,28 @@ action_profiles {
   with_selector: true
   size: 1024
 }
+counters {
+  preamble {
+    id: 302371491
+    name: "IngressPipeImpl.port_ingress_counter"
+    alias: "port_ingress_counter"
+  }
+  spec {
+    unit: BOTH
+  }
+  size: 512
+}
+counters {
+  preamble {
+    id: 314334132
+    name: "EgressPipeImpl.port_egress_counter"
+    alias: "port_egress_counter"
+  }
+  spec {
+    unit: BOTH
+  }
+  size: 512
+}
 direct_counters {
   preamble {
     id: 334804396
