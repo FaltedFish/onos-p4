@@ -130,8 +130,8 @@ public class Bmv2PortStatisticsProvider extends AbstractProvider implements Devi
 
     private DeviceProviderService providerService;
     private final Map<FlowKey, FlowRule> syntheticStatisticRules = new HashMap<>();
-    private final Map<FlowKey, Long> publishedFlowLastSeen = new HashMap<>();
-    private final Map<DeviceId, Map<PortNumber, MutablePortStats>> publishedPortStats = new HashMap<>();
+    private final Map<FlowKey, FlowCounterState> flowCounterStates = new HashMap<>();
+    private final Map<DeviceId, Map<PortNumber, MutablePortStats>> syntheticPortCounters = new HashMap<>();
     private volatile boolean active;
 
     public Bmv2PortStatisticsProvider() {
@@ -200,7 +200,6 @@ public class Bmv2PortStatisticsProvider extends AbstractProvider implements Devi
                     updateConfiguredPorts(device.id());
                     pollDevice(device.id());
                 } else {
-                    clearPublishedPortStatistics(device.id());
                     removeStaleFlowStatistics(device.id(), new HashSet<>());
                 }
             });
@@ -236,38 +235,39 @@ public class Bmv2PortStatisticsProvider extends AbstractProvider implements Devi
             return;
         }
 
-        final Map<PortNumber, MutablePortStats> statsByPort = new HashMap<>();
-        knownPorts.forEach(portNumber -> statsByPort.put(portNumber, new MutablePortStats()));
         final Set<FlowKey> liveStatisticFlows = new HashSet<>();
         final List<FlowStatisticUpdate> flowStatisticUpdates = new ArrayList<>();
 
-        flowRuleService.getFlowEntries(deviceId).forEach(flowEntry -> {
-            egressPort(flowEntry).ifPresent(portNumber -> {
-                if (!knownPorts.contains(portNumber)) {
-                    return;
-                }
-                final MutablePortStats stats = statsByPort.get(portNumber);
-                stats.packetsSent += flowEntry.packets();
-                stats.bytesSent += flowEntry.bytes();
-                stats.lastSeen = Math.max(stats.lastSeen, flowEntry.lastSeen());
-                flowStatisticUpdates.add(new FlowStatisticUpdate(flowEntry, portNumber));
-            });
-        });
         try {
-            syncFlowStatistics(flowStatisticUpdates, liveStatisticFlows);
+            flowRuleService.getFlowEntries(deviceId).forEach(flowEntry -> {
+                egressPort(flowEntry).ifPresent(portNumber -> {
+                    if (!knownPorts.contains(portNumber)) {
+                        return;
+                    }
+                    flowStatisticUpdates.add(new FlowStatisticUpdate(flowEntry, portNumber));
+                });
+            });
+        } catch (RuntimeException e) {
+            log.debug("Skipping BMv2 statistics poll for {}", deviceId, e);
+            return;
+        }
+
+        Map<PortNumber, MutablePortStats> egressDeltasByPort = new HashMap<>();
+        try {
+            egressDeltasByPort = syncFlowStatistics(flowStatisticUpdates, liveStatisticFlows);
             removeStaleFlowStatistics(deviceId, liveStatisticFlows);
         } catch (RuntimeException e) {
             log.warn("Unable to update BMv2 flow statistics for {}", deviceId, e);
         }
 
+        final Map<PortNumber, MutablePortStats> statsByPort =
+                advancePortCounters(deviceId, knownPorts, egressDeltasByPort);
         copyPeerEgressToIngress(deviceId, statsByPort);
 
         final Collection<PortStatistics> portStatistics = statsByPort.entrySet().stream()
                 .map(entry -> buildPortStatistics(deviceId, entry.getKey(), entry.getValue()))
                 .collect(Collectors.toList());
-        if (shouldPublishPortStatistics(deviceId, statsByPort)) {
-            providerService.updatePortStatistics(deviceId, portStatistics);
-        }
+        providerService.updatePortStatistics(deviceId, portStatistics);
     }
 
     private boolean shouldPoll(DeviceId deviceId) {
@@ -370,7 +370,7 @@ public class Bmv2PortStatisticsProvider extends AbstractProvider implements Devi
             if (localStats == null) {
                 return;
             }
-            final MutablePortStats peerStats = egressStats(link.dst().deviceId(), link.dst().port());
+            final MutablePortStats peerStats = syntheticEgressStats(link.dst().deviceId(), link.dst().port());
             localStats.packetsReceived = peerStats.packetsSent;
             localStats.bytesReceived = peerStats.bytesSent;
             localStats.lastSeen = Math.max(localStats.lastSeen, peerStats.lastSeen);
@@ -381,48 +381,49 @@ public class Bmv2PortStatisticsProvider extends AbstractProvider implements Devi
             if (localStats == null) {
                 continue;
             }
-            final MutablePortStats peerStats = egressStats(link.dst().deviceId(), link.dst().port());
+            final MutablePortStats peerStats = syntheticEgressStats(link.dst().deviceId(), link.dst().port());
             localStats.packetsReceived = peerStats.packetsSent;
             localStats.bytesReceived = peerStats.bytesSent;
             localStats.lastSeen = Math.max(localStats.lastSeen, peerStats.lastSeen);
         }
     }
 
-    private MutablePortStats egressStats(DeviceId deviceId, PortNumber portNumber) {
-        final MutablePortStats stats = new MutablePortStats();
-        flowRuleService.getFlowEntries(deviceId).forEach(flowEntry -> {
-            if (egressPort(flowEntry).filter(portNumber::equals).isPresent()) {
-                stats.packetsSent += flowEntry.packets();
-                stats.bytesSent += flowEntry.bytes();
-                stats.lastSeen = Math.max(stats.lastSeen, flowEntry.lastSeen());
-            }
-        });
-        return stats;
+    private Map<PortNumber, MutablePortStats> advancePortCounters(
+            DeviceId deviceId, Set<PortNumber> knownPorts,
+            Map<PortNumber, MutablePortStats> egressDeltasByPort) {
+        synchronized (syntheticPortCounters) {
+            final Map<PortNumber, MutablePortStats> counters = syntheticPortCounters
+                    .computeIfAbsent(deviceId, unused -> new HashMap<>());
+            knownPorts.forEach(portNumber ->
+                                       counters.computeIfAbsent(portNumber,
+                                                                unused -> new MutablePortStats()));
+            egressDeltasByPort.forEach((portNumber, delta) -> {
+                final MutablePortStats stats = counters.get(portNumber);
+                if (stats == null) {
+                    return;
+                }
+                stats.addSent(delta);
+            });
+            return copyStatsByPort(counters, knownPorts);
+        }
     }
 
-    private boolean shouldPublishPortStatistics(DeviceId deviceId,
-                                                Map<PortNumber, MutablePortStats> statsByPort) {
-        synchronized (publishedPortStats) {
-            final Map<PortNumber, MutablePortStats> previous = publishedPortStats.get(deviceId);
-            if (statsByPort.equals(previous)) {
-                return false;
-            }
-            publishedPortStats.put(deviceId, copyStatsByPort(statsByPort));
-            return true;
+    private MutablePortStats syntheticEgressStats(DeviceId deviceId, PortNumber portNumber) {
+        synchronized (syntheticPortCounters) {
+            return Optional.ofNullable(syntheticPortCounters.get(deviceId))
+                    .map(statsByPort -> statsByPort.get(portNumber))
+                    .map(MutablePortStats::copy)
+                    .orElseGet(MutablePortStats::new);
         }
     }
 
     private Map<PortNumber, MutablePortStats> copyStatsByPort(
-            Map<PortNumber, MutablePortStats> statsByPort) {
+            Map<PortNumber, MutablePortStats> statsByPort, Set<PortNumber> ports) {
         final Map<PortNumber, MutablePortStats> copy = new HashMap<>();
-        statsByPort.forEach((portNumber, stats) -> copy.put(portNumber, stats.copy()));
+        ports.forEach(portNumber ->
+                              Optional.ofNullable(statsByPort.get(portNumber))
+                                      .ifPresent(stats -> copy.put(portNumber, stats.copy())));
         return copy;
-    }
-
-    private void clearPublishedPortStatistics(DeviceId deviceId) {
-        synchronized (publishedPortStats) {
-            publishedPortStats.remove(deviceId);
-        }
     }
 
     private PortStatistics buildPortStatistics(DeviceId deviceId,
@@ -438,46 +439,53 @@ public class Bmv2PortStatisticsProvider extends AbstractProvider implements Devi
                 .build();
     }
 
-    private void syncFlowStatistics(List<FlowStatisticUpdate> updates,
-                                    Set<FlowKey> liveStatisticFlows) {
+    private Map<PortNumber, MutablePortStats> syncFlowStatistics(
+            List<FlowStatisticUpdate> updates, Set<FlowKey> liveStatisticFlows) {
+        final Map<PortNumber, MutablePortStats> egressDeltasByPort = new HashMap<>();
         synchronized (syntheticStatisticRules) {
             for (FlowStatisticUpdate update : updates) {
                 final FlowEntry flowEntry = update.flowEntry;
                 final FlowKey key = new FlowKey(flowEntry.deviceId(), flowEntry.id().value());
-                final FlowRule syntheticRule = syntheticStatisticRule(flowEntry, update.portNumber);
                 final FlowRule previousRule = syntheticStatisticRules.get(key);
+                final FlowRule syntheticRule = stableSyntheticStatisticRule(
+                        previousRule, flowEntry, update.portNumber);
                 if (previousRule == null) {
                     statisticStore.prepareForStatistics(syntheticRule);
-                    publishedFlowLastSeen.remove(key);
+                    flowCounterStates.remove(key);
                 } else if (!previousRule.exactMatch(syntheticRule)) {
                     statisticStore.removeFromStatistics(previousRule);
                     statisticStore.prepareForStatistics(syntheticRule);
-                    publishedFlowLastSeen.remove(key);
+                    flowCounterStates.remove(key);
                 }
                 syntheticStatisticRules.put(key, syntheticRule);
-                update.syntheticRule = syntheticRule;
                 liveStatisticFlows.add(key);
+
+                final FlowCounterState counterState = flowCounterStates.computeIfAbsent(
+                        key, unused -> new FlowCounterState(flowEntry.packets(), flowEntry.bytes()));
+                final MutablePortStats delta = counterState.advance(flowEntry);
+                egressDeltasByPort.computeIfAbsent(update.portNumber,
+                                                   unused -> new MutablePortStats())
+                        .addSent(delta);
+                statisticStore.addOrUpdateStatistic(
+                        new DefaultFlowEntry(
+                                syntheticRule,
+                                flowEntry.state(),
+                                flowEntry.life(),
+                                counterState.syntheticPackets,
+                                counterState.syntheticBytes));
             }
         }
+        return egressDeltasByPort;
+    }
 
-        updates.forEach(update -> {
-            final FlowEntry flowEntry = update.flowEntry;
-            final FlowKey key = new FlowKey(flowEntry.deviceId(), flowEntry.id().value());
-            final long lastSeen = flowEntry.lastSeen();
-            synchronized (syntheticStatisticRules) {
-                if (Objects.equals(publishedFlowLastSeen.get(key), lastSeen)) {
-                    return;
-                }
-                publishedFlowLastSeen.put(key, lastSeen);
-            }
-            statisticStore.addOrUpdateStatistic(
-                    new DefaultFlowEntry(
-                            update.syntheticRule,
-                            flowEntry.state(),
-                            flowEntry.life(),
-                            flowEntry.packets(),
-                            flowEntry.bytes()));
-        });
+    private FlowRule stableSyntheticStatisticRule(FlowRule previousRule,
+                                                  FlowEntry flowEntry,
+                                                  PortNumber portNumber) {
+        final FlowRule syntheticRule = syntheticStatisticRule(flowEntry, portNumber);
+        if (previousRule != null && previousRule.exactMatch(syntheticRule)) {
+            return previousRule;
+        }
+        return syntheticRule;
     }
 
     private FlowRule syntheticStatisticRule(FlowEntry flowEntry, PortNumber portNumber) {
@@ -509,7 +517,7 @@ public class Bmv2PortStatisticsProvider extends AbstractProvider implements Devi
             staleKeys.forEach(key -> {
                 statisticStore.removeFromStatistics(syntheticStatisticRules.get(key));
                 syntheticStatisticRules.remove(key);
-                publishedFlowLastSeen.remove(key);
+                flowCounterStates.remove(key);
             });
         }
     }
@@ -518,10 +526,10 @@ public class Bmv2PortStatisticsProvider extends AbstractProvider implements Devi
         synchronized (syntheticStatisticRules) {
             syntheticStatisticRules.values().forEach(statisticStore::removeFromStatistics);
             syntheticStatisticRules.clear();
-            publishedFlowLastSeen.clear();
+            flowCounterStates.clear();
         }
-        synchronized (publishedPortStats) {
-            publishedPortStats.clear();
+        synchronized (syntheticPortCounters) {
+            syntheticPortCounters.clear();
         }
     }
 
@@ -532,6 +540,12 @@ public class Bmv2PortStatisticsProvider extends AbstractProvider implements Devi
         private long bytesSent;
         private long lastSeen;
 
+        private void addSent(MutablePortStats delta) {
+            packetsSent = addCounter(packetsSent, delta.packetsSent);
+            bytesSent = addCounter(bytesSent, delta.bytesSent);
+            lastSeen = Math.max(lastSeen, delta.lastSeen);
+        }
+
         private MutablePortStats copy() {
             final MutablePortStats copy = new MutablePortStats();
             copy.packetsReceived = packetsReceived;
@@ -541,38 +555,57 @@ public class Bmv2PortStatisticsProvider extends AbstractProvider implements Devi
             copy.lastSeen = lastSeen;
             return copy;
         }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(packetsReceived, packetsSent, bytesReceived, bytesSent, lastSeen);
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
-            }
-            if (!(obj instanceof MutablePortStats)) {
-                return false;
-            }
-            final MutablePortStats other = (MutablePortStats) obj;
-            return packetsReceived == other.packetsReceived &&
-                    packetsSent == other.packetsSent &&
-                    bytesReceived == other.bytesReceived &&
-                    bytesSent == other.bytesSent &&
-                    lastSeen == other.lastSeen;
-        }
     }
 
     private static final class FlowStatisticUpdate {
         private final FlowEntry flowEntry;
         private final PortNumber portNumber;
-        private FlowRule syntheticRule;
 
         private FlowStatisticUpdate(FlowEntry flowEntry, PortNumber portNumber) {
             this.flowEntry = flowEntry;
             this.portNumber = portNumber;
         }
+    }
+
+    private static final class FlowCounterState {
+        private long rawPackets;
+        private long rawBytes;
+        private long syntheticPackets;
+        private long syntheticBytes;
+
+        private FlowCounterState(long rawPackets, long rawBytes) {
+            this.rawPackets = rawPackets;
+            this.rawBytes = rawBytes;
+        }
+
+        private MutablePortStats advance(FlowEntry flowEntry) {
+            final long packetDelta = counterDelta(flowEntry.packets(), rawPackets);
+            final long byteDelta = counterDelta(flowEntry.bytes(), rawBytes);
+            rawPackets = flowEntry.packets();
+            rawBytes = flowEntry.bytes();
+            syntheticPackets = addCounter(syntheticPackets, packetDelta);
+            syntheticBytes = addCounter(syntheticBytes, byteDelta);
+
+            final MutablePortStats delta = new MutablePortStats();
+            delta.packetsSent = packetDelta;
+            delta.bytesSent = byteDelta;
+            delta.lastSeen = flowEntry.lastSeen();
+            return delta;
+        }
+    }
+
+    private static long counterDelta(long current, long previous) {
+        if (current < previous) {
+            return current;
+        }
+        return current - previous;
+    }
+
+    private static long addCounter(long counter, long delta) {
+        if (Long.MAX_VALUE - counter < delta) {
+            return Long.MAX_VALUE;
+        }
+        return counter + delta;
     }
 
     private static final class FlowKey {

@@ -7,6 +7,7 @@ org/onosproject/ngsdn/tutorial/pipeconf/PipeconfLoader.class
 org/onosproject/ngsdn/tutorial/Ipv6RoutingComponent$NextHop.class
 org/onosproject/ngsdn/tutorial/StaticNetcfgLinkProvider$InternalConfigListener.class
 org/onosproject/ngsdn/tutorial/StaticNetcfgLinkProvider$InternalDeviceListener.class
+org/onosproject/ngsdn/tutorial/Bmv2PortStatisticsProvider$FlowCounterState.class
 org/onosproject/ngsdn/tutorial/common/Utils.class
 org/onosproject/ngsdn/tutorial/Ipv6RoutingComponent$InternalDeviceListener.class
 org/onosproject/ngsdn/tutorial/Bmv2PortStatisticsProvider$FlowStatisticUpdate.class
