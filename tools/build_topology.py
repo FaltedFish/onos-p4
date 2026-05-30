@@ -13,6 +13,7 @@ DEFAULT_THRIFT_BASE = 9090
 DEFAULT_DEVICE_ID_BASE = 0
 DEFAULT_CPU_PORT = 255
 DEFAULT_IPV6_PREFIX = "2001"
+DEFAULT_DOMAIN = "default"
 TOPOLOGY_VERSION = 1
 NAME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_-]*$")
 
@@ -31,6 +32,12 @@ def require_name(value, field):
         raise ValueError(
             f"{field} must match {NAME_RE.pattern}; got {value!r}")
     return value
+
+
+def require_optional_name(value, field, default):
+    if value is None:
+        return default
+    return require_name(value, field)
 
 
 def require_int(value, field, minimum=0):
@@ -241,6 +248,8 @@ def expand_topology(source, args=None):
             raise ValueError(f"routers[{idx}].mySid must be a non-empty string")
         routers.append({
             "name": name,
+            "domain": require_optional_name(
+                router.get("domain"), f"routers[{idx}].domain", DEFAULT_DOMAIN),
             "deviceId": device_id,
             "grpcPort": grpc_port,
             "thriftPort": thrift_port,

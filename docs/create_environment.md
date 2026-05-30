@@ -186,6 +186,88 @@ TOPOLOGY_FILE=target/env/custom-lab-topology.json ./env/create_mininet.sh
 
 显式设置 `TOPOLOGY_FILE` 时，脚本只加载该文件，不会覆盖它。
 
+## 两域独立 ONOS 环境
+
+本项目支持把同一个 Mininet/BMv2 数据面拆给多个独立 ONOS 控制器域管理。
+拓扑 JSON 中 router 可以配置 `domain` 字段，未配置时默认为 `default`。
+
+最小可运行示例见 `docs/multi_controller_minimal_example.md`。
+
+示例拓扑：
+
+```text
+topologies/linear-4r-2domain.json
+
+c1: r1, r2
+c2: r3, r4
+```
+
+先展开拓扑：
+
+```bash
+./tools/build_topology.py \
+  --config topologies/linear-4r-2domain.json \
+  --output target/env/topology-linear-4r-2domain.json
+```
+
+如果本机已有默认 `onos` 容器，且它仍加载默认 `9559` 起始端口的 netcfg，
+建议为两域实验换一组 BMv2 端口，避免多个 ONOS 争用同一批 BMv2 router：
+
+```bash
+./tools/build_topology.py \
+  --config topologies/linear-4r-2domain.json \
+  --grpc-base 9659 \
+  --thrift-base 9190 \
+  --output target/env/topology-linear-4r-2domain-test.json
+```
+
+分别启动两个 ONOS 域：
+
+```bash
+DOMAIN=c1 \
+ONOS_CONTAINER=onos-c1 \
+ONOS_REST_PORT=8281 \
+RECREATE_ONOS=1 \
+TOPOLOGY_FILE=target/env/topology-linear-4r-2domain-test.json \
+./env/create_onos.sh
+
+DOMAIN=c2 \
+ONOS_CONTAINER=onos-c2 \
+ONOS_REST_PORT=8381 \
+RECREATE_ONOS=1 \
+TOPOLOGY_FILE=target/env/topology-linear-4r-2domain-test.json \
+./env/create_onos.sh
+```
+
+`DOMAIN` 会让 `build_netcfg.py --domain` 只生成本域 router、host 和域内 link。
+跨域链路会生成应用配置 `domainBoundaryConfig`，由
+`DomainBoundaryRoutingComponent` 自动在边界 router 下发外域 host/SID `/128`
+可达规则。
+
+启动同一份 Mininet 拓扑：
+
+```bash
+TOPOLOGY_FILE=target/env/topology-linear-4r-2domain-test.json \
+./env/create_mininet.sh
+```
+
+检查两个 ONOS 的设备范围：
+
+```bash
+curl -sS --user onos:rocks \
+  http://127.0.0.1:8281/onos/v1/network/configuration/devices
+
+curl -sS --user onos:rocks \
+  http://127.0.0.1:8381/onos/v1/network/configuration/devices
+```
+
+预期：
+
+```text
+onos-c1: device:bmv2:r1, device:bmv2:r2
+onos-c2: device:bmv2:r3, device:bmv2:r4
+```
+
 ## create_onos.sh 常用变量
 
 ```text
@@ -196,6 +278,13 @@ ONOS_URL                 宿主机访问 ONOS REST 的 URL，默认 http://127.0
 ONOS_INTERNAL_URL        container 模式下容器内访问的 REST URL
 ONOS_AUTH                ONOS REST 认证，默认 onos:rocks
 ONOS_REST_MODE           container 或 host，默认 container
+ONOS_REST_PORT           宿主机 REST 映射端口，默认 8181
+ONOS_SSH_PORT            宿主机 Karaf SSH 映射端口，默认随 ONOS_REST_PORT 偏移
+ONOS_GRPC_PORT           宿主机 ONOS gRPC 映射端口，默认随 ONOS_REST_PORT 偏移
+ONOS_OFCONFIG_PORT       宿主机 OF-CONFIG 映射端口，默认随 ONOS_REST_PORT 偏移
+ONOS_OPENFLOW_PORT       宿主机 OpenFlow 映射端口，默认随 ONOS_REST_PORT 偏移
+ONOS_TEST_PORT           宿主机 ONOS test port 映射端口，默认随 ONOS_REST_PORT 偏移
+DOMAIN                   只生成并推送指定 router domain 的 netcfg
 DOCKER_CMD               Docker 命令，默认 docker
 ONOS_DOCKER_NETWORK      ONOS Docker bridge 网络，默认 onos-ngsdn
 ONOS_DOCKER_SUBNET       Docker 网络网段，默认 172.20.0.0/16

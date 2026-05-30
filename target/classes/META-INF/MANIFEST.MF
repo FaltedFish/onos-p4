@@ -1,5 +1,5 @@
 Manifest-Version: 1.0
-Bnd-LastModified: 1779890324538
+Bnd-LastModified: 1780154490900
 Build-Jdk: 11.0.27
 Built-By: p4
 Bundle-Description: NG-SDN multi-router app for BMv2 simple_switch_grpc
@@ -26,32 +26,34 @@ Export-Package: org.onosproject.ngsdn.tutorial;uses:="org.onlab.packet,o
  e";version="1.0.0",org.onosproject.ngsdn.tutorial.cli;uses:="org.apache
  .karaf.shell.api.action,org.apache.karaf.shell.api.action.lifecycle,org
  .apache.karaf.shell.api.console,org.onosproject.cli";version="1.0.0"
-Import-Package: com.google.common.base;version="[22.0,23)",com.google.co
- mmon.collect;version="[22.0,23)",org.apache.karaf.shell.api.action;vers
- ion="[4.2,5)",org.apache.karaf.shell.api.action.lifecycle;version="[4.2
- ,5)",org.apache.karaf.shell.api.console;version="[4.2,5)",org.apache.ka
- raf.shell.support.completers;version="[4.2,5)",org.onlab.osgi;version="
- [2.7,3)",org.onlab.packet;version="[2.7,3)",org.onlab.util;version="[2.
- 7,3)",org.onosproject.cfg;version="[2.7,3)",org.onosproject.cli;version
- ="[2.7,3)",org.onosproject.cli.net;version="[2.7,3)",org.onosproject.co
- re;version="[2.7,3)",org.onosproject.event;version="[2.7,3)",org.onospr
- oject.grpc.api;version="[2.7,3)",org.onosproject.mastership;version="[2
- .7,3)",org.onosproject.net;version="[2.7,3)",org.onosproject.net.behavi
- our;version="[2.7,3)",org.onosproject.net.config;version="[2.7,3)",org.
- onosproject.net.config.basics;version="[2.7,3)",org.onosproject.net.dev
- ice;version="[2.7,3)",org.onosproject.net.driver;version="[2.7,3)",org.
- onosproject.net.flow;version="[2.7,3)",org.onosproject.net.flow.criteri
- a;version="[2.7,3)",org.onosproject.net.flow.instructions;version="[2.7
- ,3)",org.onosproject.net.flowobjective;version="[2.7,3)",org.onosprojec
- t.net.group;version="[2.7,3)",org.onosproject.net.host;version="[2.7,3)
- ",org.onosproject.net.intf;version="[2.7,3)",org.onosproject.net.link;v
- ersion="[2.7,3)",org.onosproject.net.packet;version="[2.7,3)",org.onosp
- roject.net.pi.model;version="[2.7,3)",org.onosproject.net.pi.runtime;ve
- rsion="[2.7,3)",org.onosproject.net.pi.service;version="[2.7,3)",org.on
- osproject.net.provider;version="[2.7,3)",org.onosproject.ngsdn.tutorial
- ,org.onosproject.ngsdn.tutorial.common,org.onosproject.ngsdn.tutorial.p
- ipeconf,org.onosproject.p4runtime.api;version="[2.7,3)",org.onosproject
- .p4runtime.model;version="[2.7,3)",org.slf4j;version="[1.7,2)"
+Import-Package: com.fasterxml.jackson.databind;version="[2.11,3)",com.fa
+ sterxml.jackson.databind.node;version="[2.11,3)",com.google.common.base
+ ;version="[22.0,23)",com.google.common.collect;version="[22.0,23)",org.
+ apache.karaf.shell.api.action;version="[4.2,5)",org.apache.karaf.shell.
+ api.action.lifecycle;version="[4.2,5)",org.apache.karaf.shell.api.conso
+ le;version="[4.2,5)",org.apache.karaf.shell.support.completers;version=
+ "[4.2,5)",org.onlab.osgi;version="[2.7,3)",org.onlab.packet;version="[2
+ .7,3)",org.onlab.util;version="[2.7,3)",org.onosproject.cfg;version="[2
+ .7,3)",org.onosproject.cli;version="[2.7,3)",org.onosproject.cli.net;ve
+ rsion="[2.7,3)",org.onosproject.core;version="[2.7,3)",org.onosproject.
+ event;version="[2.7,3)",org.onosproject.grpc.api;version="[2.7,3)",org.
+ onosproject.mastership;version="[2.7,3)",org.onosproject.net;version="[
+ 2.7,3)",org.onosproject.net.behaviour;version="[2.7,3)",org.onosproject
+ .net.config;version="[2.7,3)",org.onosproject.net.config.basics;version
+ ="[2.7,3)",org.onosproject.net.device;version="[2.7,3)",org.onosproject
+ .net.driver;version="[2.7,3)",org.onosproject.net.flow;version="[2.7,3)
+ ",org.onosproject.net.flow.criteria;version="[2.7,3)",org.onosproject.n
+ et.flow.instructions;version="[2.7,3)",org.onosproject.net.flowobjectiv
+ e;version="[2.7,3)",org.onosproject.net.group;version="[2.7,3)",org.ono
+ sproject.net.host;version="[2.7,3)",org.onosproject.net.intf;version="[
+ 2.7,3)",org.onosproject.net.link;version="[2.7,3)",org.onosproject.net.
+ packet;version="[2.7,3)",org.onosproject.net.pi.model;version="[2.7,3)"
+ ,org.onosproject.net.pi.runtime;version="[2.7,3)",org.onosproject.net.p
+ i.service;version="[2.7,3)",org.onosproject.net.provider;version="[2.7,
+ 3)",org.onosproject.ngsdn.tutorial,org.onosproject.ngsdn.tutorial.commo
+ n,org.onosproject.ngsdn.tutorial.pipeconf,org.onosproject.p4runtime.api
+ ;version="[2.7,3)",org.onosproject.p4runtime.model;version="[2.7,3)",or
+ g.slf4j;version="[1.7,2)"
 Karaf-Commands: org.onosproject.ngsdn.tutorial.cli
 Provide-Capability: osgi.service;objectClass:List<String>="org.onosproje
  ct.net.device.DeviceProvider",osgi.service;objectClass:List<String>="or
@@ -89,11 +91,12 @@ Require-Capability: osgi.service;filter:="(objectClass=org.onosproject.c
  sgi.component)(version>=1.4.0)(!(version>=2.0.0)))",osgi.ee;filter:="(&
  (osgi.ee=JavaSE)(version=11))"
 Service-Component: OSGI-INF/org.onosproject.ngsdn.tutorial.Bmv2PortStati
- sticsProvider.xml,OSGI-INF/org.onosproject.ngsdn.tutorial.Ipv6RoutingCo
- mponent.xml,OSGI-INF/org.onosproject.ngsdn.tutorial.L2BridgingComponent
- .xml,OSGI-INF/org.onosproject.ngsdn.tutorial.MainComponent.xml,OSGI-INF
- /org.onosproject.ngsdn.tutorial.NdpReplyComponent.xml,OSGI-INF/org.onos
- project.ngsdn.tutorial.Srv6Component.xml,OSGI-INF/org.onosproject.ngsdn
- .tutorial.StaticNetcfgLinkProvider.xml,OSGI-INF/org.onosproject.ngsdn.t
- utorial.pipeconf.PipeconfLoader.xml
+ sticsProvider.xml,OSGI-INF/org.onosproject.ngsdn.tutorial.DomainBoundar
+ yRoutingComponent.xml,OSGI-INF/org.onosproject.ngsdn.tutorial.Ipv6Routi
+ ngComponent.xml,OSGI-INF/org.onosproject.ngsdn.tutorial.L2BridgingCompo
+ nent.xml,OSGI-INF/org.onosproject.ngsdn.tutorial.MainComponent.xml,OSGI
+ -INF/org.onosproject.ngsdn.tutorial.NdpReplyComponent.xml,OSGI-INF/org.
+ onosproject.ngsdn.tutorial.Srv6Component.xml,OSGI-INF/org.onosproject.n
+ gsdn.tutorial.StaticNetcfgLinkProvider.xml,OSGI-INF/org.onosproject.ngs
+ dn.tutorial.pipeconf.PipeconfLoader.xml
 Tool: Bnd-4.1.0.201810181252

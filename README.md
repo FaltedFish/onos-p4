@@ -490,7 +490,7 @@ srv6-insert device:bmv2:r1 fc00:0:2:: fc00:0:3:: 2001:4:1::10
 
 - ONOS 中 4 台 BMv2 设备可用，并发现主机。
 - 每台设备已有 `srv6_my_sid` flow。
-- `r1` 已下发 `srv6_transit` / `srv6_t_insert_3` flow。
+- `r1` 已下发 `srv6_transit` flow，本 smoke test 使用 `srv6_t_insert_3`。
 - `h1 ping6 -c 3 2001:4:1::10` 成功。
 - 抓包确认请求流量从 `r1-r2`、`r2-r3`、`r3-r4` 经过，前两跳携带
   SRH，最后一跳执行 `srv6_pop()` 后变回普通 IPv6，并且不走 `r1-r4`

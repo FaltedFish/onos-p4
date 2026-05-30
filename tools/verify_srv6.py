@@ -246,10 +246,10 @@ def my_sid_flows_are_present(rest):
     return data
 
 
-def srv6_transit_flow_is_present(rest):
+def srv6_transit_flow_is_present(rest, action_name="srv6_t_insert_3"):
     flows, data = flow_list(rest)
     if not any(flow_is_added(flow)
-               and flow_contains(flow, R1_DEVICE, "srv6_transit", "srv6_t_insert_3")
+               and flow_contains(flow, R1_DEVICE, "srv6_transit", action_name)
                for flow in flows):
         return False
     return data

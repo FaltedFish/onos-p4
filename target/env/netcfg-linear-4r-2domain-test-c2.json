@@ -1,0 +1,155 @@
+{
+  "devices": {
+    "device:bmv2:r3": {
+      "basic": {
+        "name": "r3",
+        "driver": "bmv2",
+        "pipeconf": "org.onosproject.ngsdn-multirouter",
+        "managementAddress": "grpc://172.20.0.1:9661?device_id=2"
+      },
+      "fabricDeviceConfig": {
+        "myStationMac": "00:aa:00:00:00:03",
+        "mySid": "fc00:0:3::",
+        "isSpine": false
+      },
+      "ports": {
+        "1": {
+          "number": 1,
+          "name": "r3-p1",
+          "enabled": true,
+          "type": "packet",
+          "speed": 10000
+        },
+        "2": {
+          "number": 2,
+          "name": "r3-p2",
+          "enabled": true,
+          "type": "packet",
+          "speed": 10000
+        },
+        "3": {
+          "number": 3,
+          "name": "r3-p3",
+          "enabled": true,
+          "type": "packet",
+          "speed": 10000
+        }
+      }
+    },
+    "device:bmv2:r4": {
+      "basic": {
+        "name": "r4",
+        "driver": "bmv2",
+        "pipeconf": "org.onosproject.ngsdn-multirouter",
+        "managementAddress": "grpc://172.20.0.1:9662?device_id=3"
+      },
+      "fabricDeviceConfig": {
+        "myStationMac": "00:aa:00:00:00:04",
+        "mySid": "fc00:0:4::",
+        "isSpine": false
+      },
+      "ports": {
+        "1": {
+          "number": 1,
+          "name": "r4-p1",
+          "enabled": true,
+          "type": "packet",
+          "speed": 10000
+        },
+        "2": {
+          "number": 2,
+          "name": "r4-p2",
+          "enabled": true,
+          "type": "packet",
+          "speed": 10000
+        }
+      }
+    }
+  },
+  "ports": {
+    "device:bmv2:r3/3": {
+      "interfaces": [
+        {
+          "name": "r3-h3",
+          "ips": [
+            "2001:3:1::254/64"
+          ]
+        }
+      ]
+    },
+    "device:bmv2:r4/2": {
+      "interfaces": [
+        {
+          "name": "r4-h4",
+          "ips": [
+            "2001:4:1::254/64"
+          ]
+        }
+      ]
+    }
+  },
+  "links": {
+    "device:bmv2:r3/2-device:bmv2:r4/1": {
+      "basic": {
+        "type": "DIRECT"
+      }
+    },
+    "device:bmv2:r4/1-device:bmv2:r3/2": {
+      "basic": {
+        "type": "DIRECT"
+      }
+    }
+  },
+  "hosts": {
+    "00:04:00:00:02:00/None": {
+      "basic": {
+        "name": "h3",
+        "ips": [
+          "2001:3:1::10"
+        ],
+        "locations": [
+          "device:bmv2:r3/3"
+        ]
+      }
+    },
+    "00:04:00:00:03:00/None": {
+      "basic": {
+        "name": "h4",
+        "ips": [
+          "2001:4:1::10"
+        ],
+        "locations": [
+          "device:bmv2:r4/2"
+        ]
+      }
+    }
+  },
+  "apps": {
+    "org.onosproject.core": {
+      "core": {
+        "linkDiscoveryMode": "STRICT"
+      }
+    },
+    "org.onosproject.ngsdn-multirouter": {
+      "domainBoundaryConfig": {
+        "domain": "c2",
+        "routes": [
+          {
+            "device": "device:bmv2:r3",
+            "port": 1,
+            "nextHopMac": "00:aa:00:00:00:02",
+            "nextHopSid": "fc00:0:2::",
+            "remoteDomain": "c1",
+            "remoteRouter": "r2",
+            "prefixes": [
+              "2001:1:1::10/128",
+              "2001:2:1::10/128",
+              "fc00:0:1::/128",
+              "fc00:0:2::/128"
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

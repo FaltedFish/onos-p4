@@ -3,7 +3,7 @@
 
 #define CPU_PORT 255
 #define CPU_CLONE_SESSION_ID 99
-#define SRV6_MAX_HOPS 4
+#define SRV6_MAX_HOPS 6
 
 typedef bit<9>   port_num_t;
 typedef bit<48>  mac_addr_t;
@@ -455,6 +455,55 @@ control IngressPipeImpl (inout parsed_headers_t    hdr,
         hdr.srv6_list[2].segment_id = s1;
     }
 
+    action srv6_t_insert_4(ipv6_addr_t s1, ipv6_addr_t s2, ipv6_addr_t s3, ipv6_addr_t s4) {
+        hdr.ipv6.dst_addr = s1;
+        hdr.ipv6.payload_len = hdr.ipv6.payload_len + 72;
+        insert_srv6h_header(4);
+        hdr.srv6_list[0].setValid();
+        hdr.srv6_list[0].segment_id = s4;
+        hdr.srv6_list[1].setValid();
+        hdr.srv6_list[1].segment_id = s3;
+        hdr.srv6_list[2].setValid();
+        hdr.srv6_list[2].segment_id = s2;
+        hdr.srv6_list[3].setValid();
+        hdr.srv6_list[3].segment_id = s1;
+    }
+
+    action srv6_t_insert_5(ipv6_addr_t s1, ipv6_addr_t s2, ipv6_addr_t s3, ipv6_addr_t s4, ipv6_addr_t s5) {
+        hdr.ipv6.dst_addr = s1;
+        hdr.ipv6.payload_len = hdr.ipv6.payload_len + 88;
+        insert_srv6h_header(5);
+        hdr.srv6_list[0].setValid();
+        hdr.srv6_list[0].segment_id = s5;
+        hdr.srv6_list[1].setValid();
+        hdr.srv6_list[1].segment_id = s4;
+        hdr.srv6_list[2].setValid();
+        hdr.srv6_list[2].segment_id = s3;
+        hdr.srv6_list[3].setValid();
+        hdr.srv6_list[3].segment_id = s2;
+        hdr.srv6_list[4].setValid();
+        hdr.srv6_list[4].segment_id = s1;
+    }
+
+    action srv6_t_insert_6(ipv6_addr_t s1, ipv6_addr_t s2, ipv6_addr_t s3, ipv6_addr_t s4, ipv6_addr_t s5,
+                           ipv6_addr_t s6) {
+        hdr.ipv6.dst_addr = s1;
+        hdr.ipv6.payload_len = hdr.ipv6.payload_len + 104;
+        insert_srv6h_header(6);
+        hdr.srv6_list[0].setValid();
+        hdr.srv6_list[0].segment_id = s6;
+        hdr.srv6_list[1].setValid();
+        hdr.srv6_list[1].segment_id = s5;
+        hdr.srv6_list[2].setValid();
+        hdr.srv6_list[2].segment_id = s4;
+        hdr.srv6_list[3].setValid();
+        hdr.srv6_list[3].segment_id = s3;
+        hdr.srv6_list[4].setValid();
+        hdr.srv6_list[4].segment_id = s2;
+        hdr.srv6_list[5].setValid();
+        hdr.srv6_list[5].segment_id = s1;
+    }
+
     direct_counter(CounterType.packets_and_bytes) srv6_transit_table_counter;
     table srv6_transit {
       key = {
@@ -463,6 +512,9 @@ control IngressPipeImpl (inout parsed_headers_t    hdr,
       actions = {
           srv6_t_insert_2;
           srv6_t_insert_3;
+          srv6_t_insert_4;
+          srv6_t_insert_5;
+          srv6_t_insert_6;
       }
       counters = srv6_transit_table_counter;
     }
@@ -476,6 +528,9 @@ control IngressPipeImpl (inout parsed_headers_t    hdr,
       hdr.srv6_list[0].setInvalid();
       hdr.srv6_list[1].setInvalid();
       hdr.srv6_list[2].setInvalid();
+      hdr.srv6_list[3].setInvalid();
+      hdr.srv6_list[4].setInvalid();
+      hdr.srv6_list[5].setInvalid();
     }
 
     action send_to_cpu() {

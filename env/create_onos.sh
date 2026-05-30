@@ -7,10 +7,23 @@ cd "${ROOT_DIR}"
 APP_NAME="${APP_NAME:-org.onosproject.ngsdn-multirouter}"
 ONOS_CONTAINER="${ONOS_CONTAINER:-onos}"
 ONOS_IMAGE="${ONOS_IMAGE:-hub.rat.dev/onosproject/onos:2.7.0}"
-ONOS_URL="${ONOS_URL:-http://127.0.0.1:8181}"
+ONOS_URL="${ONOS_URL:-http://127.0.0.1:${ONOS_REST_PORT:-8181}}"
+if [[ -z "${ONOS_REST_PORT:-}" ]]; then
+  if [[ "${ONOS_URL}" =~ ^https?://[^/]*:([0-9]+)(/.*)?$ ]]; then
+    ONOS_REST_PORT="${BASH_REMATCH[1]}"
+  else
+    ONOS_REST_PORT="8181"
+  fi
+fi
+ONOS_PORT_OFFSET="$((ONOS_REST_PORT - 8181))"
 ONOS_INTERNAL_URL="${ONOS_INTERNAL_URL:-http://127.0.0.1:8181}"
 ONOS_AUTH="${ONOS_AUTH:-onos:rocks}"
 ONOS_REST_MODE="${ONOS_REST_MODE:-container}"
+ONOS_SSH_PORT="${ONOS_SSH_PORT:-$((8101 + ONOS_PORT_OFFSET))}"
+ONOS_GRPC_PORT="${ONOS_GRPC_PORT:-$((50051 + ONOS_PORT_OFFSET))}"
+ONOS_OFCONFIG_PORT="${ONOS_OFCONFIG_PORT:-$((6640 + ONOS_PORT_OFFSET))}"
+ONOS_OPENFLOW_PORT="${ONOS_OPENFLOW_PORT:-$((6653 + ONOS_PORT_OFFSET))}"
+ONOS_TEST_PORT="${ONOS_TEST_PORT:-$((9876 + ONOS_PORT_OFFSET))}"
 DOCKER_CMD="${DOCKER_CMD:-docker}"
 ONOS_DOCKER_NETWORK="${ONOS_DOCKER_NETWORK:-onos-ngsdn}"
 ONOS_DOCKER_SUBNET="${ONOS_DOCKER_SUBNET:-172.20.0.0/16}"
@@ -29,6 +42,7 @@ CPU_PORT_EXPLICIT="${CPU_PORT+x}"
 ROUTERS="${ROUTERS:-2}"
 HOSTS_PER_ROUTER="${HOSTS_PER_ROUTER:-1}"
 TOPOLOGY="${TOPOLOGY:-linear}"
+DOMAIN="${DOMAIN:-}"
 TOPOLOGY_CONFIG="${TOPOLOGY_CONFIG:-}"
 TOPOLOGY_FILE="${TOPOLOGY_FILE:-}"
 TOPOLOGY_FILE_EXPLICIT=0
@@ -65,9 +79,17 @@ fi
 if [[ -n "${NETCFG_FILE:-}" ]]; then
   NETCFG_FILE="${NETCFG_FILE}"
 elif [[ -n "${TOPOLOGY_CONFIG}" || "${TOPOLOGY_FILE_EXPLICIT}" == "1" ]]; then
-  NETCFG_FILE="target/env/netcfg-${TOPOLOGY_NAME}.json"
+  if [[ -n "${DOMAIN}" ]]; then
+    NETCFG_FILE="target/env/netcfg-${TOPOLOGY_NAME}-${DOMAIN}.json"
+  else
+    NETCFG_FILE="target/env/netcfg-${TOPOLOGY_NAME}.json"
+  fi
 else
-  NETCFG_FILE="target/env/netcfg-${TOPOLOGY}-${ROUTERS}r-${HOSTS_PER_ROUTER}h.json"
+  if [[ -n "${DOMAIN}" ]]; then
+    NETCFG_FILE="target/env/netcfg-${TOPOLOGY}-${ROUTERS}r-${HOSTS_PER_ROUTER}h-${DOMAIN}.json"
+  else
+    NETCFG_FILE="target/env/netcfg-${TOPOLOGY}-${ROUTERS}r-${HOSTS_PER_ROUTER}h.json"
+  fi
 fi
 
 BUILD_APP="${BUILD_APP:-1}"
@@ -286,12 +308,12 @@ start_onos_container() {
     "${DOCKER[@]}" run -d \
       --name "${ONOS_CONTAINER}" \
       --network "${ONOS_DOCKER_NETWORK}" \
-      -p 8181:8181 \
-      -p 8101:8101 \
-      -p 50051:50051 \
-      -p 6640:6640 \
-      -p 6653:6653 \
-      -p 9876:9876 \
+      -p "${ONOS_REST_PORT}:8181" \
+      -p "${ONOS_SSH_PORT}:8101" \
+      -p "${ONOS_GRPC_PORT}:50051" \
+      -p "${ONOS_OFCONFIG_PORT}:6640" \
+      -p "${ONOS_OPENFLOW_PORT}:6653" \
+      -p "${ONOS_TEST_PORT}:9876" \
       "${ONOS_IMAGE}" >/dev/null
     ONOS_CONTAINER_RECREATED=1
   fi
@@ -487,10 +509,16 @@ fi
 
 echo "Generating netcfg ${NETCFG_FILE}..."
 mkdir -p "$(dirname "${NETCFG_FILE}")"
-./tools/build_netcfg.py \
-  --ip "${NETCFG_IP}" \
-  --topology-file "${TOPOLOGY_FILE}" \
+netcfg_args=(
+  ./tools/build_netcfg.py
+  --ip "${NETCFG_IP}"
+  --topology-file "${TOPOLOGY_FILE}"
   --output "${NETCFG_FILE}"
+)
+if [[ -n "${DOMAIN}" ]]; then
+  netcfg_args+=(--domain "${DOMAIN}")
+fi
+"${netcfg_args[@]}"
 
 echo "Pushing netcfg to ONOS..."
 if [[ "${ONOS_REST_MODE}" == "container" ]]; then
@@ -508,6 +536,10 @@ fi
 echo
 echo "ONOS environment is ready."
 echo "  ONOS URL:       ${ONOS_URL}"
+echo "  ONOS container: ${ONOS_CONTAINER}"
+if [[ -n "${DOMAIN}" ]]; then
+  echo "  domain:         ${DOMAIN}"
+fi
 echo "  REST mode:      ${ONOS_REST_MODE}"
 echo "  Docker network: ${ONOS_DOCKER_NETWORK}"
 echo "  netcfg IP:      ${NETCFG_IP}"

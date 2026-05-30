@@ -155,6 +155,15 @@ tables {
     id: 24874888
   }
   action_refs {
+    id: 29221388
+  }
+  action_refs {
+    id: 18957523
+  }
+  action_refs {
+    id: 23640933
+  }
+  action_refs {
     id: 21257015
     annotations: "@defaultonly"
     scope: DEFAULT_ONLY
@@ -339,6 +348,102 @@ actions {
   params {
     id: 3
     name: "s3"
+    bitwidth: 128
+  }
+}
+actions {
+  preamble {
+    id: 29221388
+    name: "IngressPipeImpl.srv6_t_insert_4"
+    alias: "srv6_t_insert_4"
+  }
+  params {
+    id: 1
+    name: "s1"
+    bitwidth: 128
+  }
+  params {
+    id: 2
+    name: "s2"
+    bitwidth: 128
+  }
+  params {
+    id: 3
+    name: "s3"
+    bitwidth: 128
+  }
+  params {
+    id: 4
+    name: "s4"
+    bitwidth: 128
+  }
+}
+actions {
+  preamble {
+    id: 18957523
+    name: "IngressPipeImpl.srv6_t_insert_5"
+    alias: "srv6_t_insert_5"
+  }
+  params {
+    id: 1
+    name: "s1"
+    bitwidth: 128
+  }
+  params {
+    id: 2
+    name: "s2"
+    bitwidth: 128
+  }
+  params {
+    id: 3
+    name: "s3"
+    bitwidth: 128
+  }
+  params {
+    id: 4
+    name: "s4"
+    bitwidth: 128
+  }
+  params {
+    id: 5
+    name: "s5"
+    bitwidth: 128
+  }
+}
+actions {
+  preamble {
+    id: 23640933
+    name: "IngressPipeImpl.srv6_t_insert_6"
+    alias: "srv6_t_insert_6"
+  }
+  params {
+    id: 1
+    name: "s1"
+    bitwidth: 128
+  }
+  params {
+    id: 2
+    name: "s2"
+    bitwidth: 128
+  }
+  params {
+    id: 3
+    name: "s3"
+    bitwidth: 128
+  }
+  params {
+    id: 4
+    name: "s4"
+    bitwidth: 128
+  }
+  params {
+    id: 5
+    name: "s5"
+    bitwidth: 128
+  }
+  params {
+    id: 6
+    name: "s6"
     bitwidth: 128
   }
 }

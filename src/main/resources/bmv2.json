@@ -303,6 +303,20 @@
       "header_type" : "srv6_list_t",
       "metadata" : false,
       "pi_omit" : true
+    },
+    {
+      "name" : "srv6_list[4]",
+      "id" : 17,
+      "header_type" : "srv6_list_t",
+      "metadata" : false,
+      "pi_omit" : true
+    },
+    {
+      "name" : "srv6_list[5]",
+      "id" : 18,
+      "header_type" : "srv6_list_t",
+      "metadata" : false,
+      "pi_omit" : true
     }
   ],
   "header_stacks" : [
@@ -310,8 +324,8 @@
       "name" : "srv6_list",
       "id" : 0,
       "header_type" : "srv6_list_t",
-      "size" : 4,
-      "header_ids" : [13, 14, 15, 16]
+      "size" : 6,
+      "header_ids" : [13, 14, 15, 16, 17, 18]
     }
   ],
   "header_union_types" : [],
@@ -1073,11 +1087,11 @@
       "id" : 0,
       "source_info" : {
         "filename" : "p4src/ngsdn_tutorial.p4",
-        "line" : 603,
+        "line" : 658,
         "column" : 8,
         "source_fragment" : "DeparserImpl"
       },
-      "order" : ["cpu_in", "ethernet", "ipv4", "ipv6", "srv6h", "srv6_list[0]", "srv6_list[1]", "srv6_list[2]", "srv6_list[3]", "tcp", "udp", "icmp", "icmpv6", "ndp"],
+      "order" : ["cpu_in", "ethernet", "ipv4", "ipv6", "srv6h", "srv6_list[0]", "srv6_list[1]", "srv6_list[2]", "srv6_list[3]", "srv6_list[4]", "srv6_list[5]", "tcp", "udp", "icmp", "icmpv6", "ndp"],
       "primitives" : []
     }
   ],
@@ -1148,7 +1162,7 @@
       "id" : 5,
       "source_info" : {
         "filename" : "p4src/ngsdn_tutorial.p4",
-        "line" : 506,
+        "line" : 561,
         "column" : 8,
         "source_fragment" : "counters"
       },
@@ -1186,7 +1200,7 @@
       "binding" : "IngressPipeImpl.srv6_transit",
       "source_info" : {
         "filename" : "p4src/ngsdn_tutorial.p4",
-        "line" : 458,
+        "line" : 507,
         "column" : 50,
         "source_fragment" : "srv6_transit_table_counter"
       }
@@ -1196,7 +1210,7 @@
       "id" : 9,
       "source_info" : {
         "filename" : "p4src/ngsdn_tutorial.p4",
-        "line" : 556,
+        "line" : 611,
         "column" : 62,
         "source_fragment" : "port_egress_counter"
       },
@@ -1211,7 +1225,7 @@
       "id" : 0,
       "source_info" : {
         "filename" : "p4src/ngsdn_tutorial.p4",
-        "line" : 581,
+        "line" : 636,
         "column" : 8,
         "source_fragment" : "update_checksum(hdr.ndp.isValid(), ..."
       },
@@ -2549,8 +2563,1286 @@
       ]
     },
     {
-      "name" : "IngressPipeImpl.srv6_pop",
+      "name" : "IngressPipeImpl.srv6_t_insert_4",
       "id" : 17,
+      "runtime_data" : [
+        {
+          "name" : "s1",
+          "bitwidth" : 128
+        },
+        {
+          "name" : "s2",
+          "bitwidth" : 128
+        },
+        {
+          "name" : "s3",
+          "bitwidth" : 128
+        },
+        {
+          "name" : "s4",
+          "bitwidth" : 128
+        }
+      ],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["ipv6", "dst_addr"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 0
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 459,
+            "column" : 8,
+            "source_fragment" : "hdr.ipv6.dst_addr = s1"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["ipv6", "payload_len"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "+",
+                      "left" : {
+                        "type" : "field",
+                        "value" : ["ipv6", "payload_len"]
+                      },
+                      "right" : {
+                        "type" : "hexstr",
+                        "value" : "0x0048"
+                      }
+                    }
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 460,
+            "column" : 8,
+            "source_fragment" : "hdr.ipv6.payload_len = hdr.ipv6.payload_len + 72"
+          }
+        },
+        {
+          "op" : "add_header",
+          "parameters" : [
+            {
+              "type" : "header",
+              "value" : "srv6h"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 425,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6h.setValid()"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6h", "next_hdr"]
+            },
+            {
+              "type" : "field",
+              "value" : ["ipv6", "next_hdr"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 426,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6h.next_hdr = hdr.ipv6.next_hdr"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6h", "hdr_ext_len"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x08"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 427,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6h.hdr_ext_len = num_segments * 2"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6h", "routing_type"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x04"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 428,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6h.routing_type = 4"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6h", "segment_left"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x03"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 429,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6h.segment_left = num_segments - 1"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6h", "last_entry"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x03"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 430,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6h.last_entry = num_segments - 1"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6h", "flags"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x00"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 431,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6h.flags = 0"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6h", "tag"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x0000"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 432,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6h.tag = 0"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["ipv6", "next_hdr"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x2b"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 21,
+            "column" : 29,
+            "source_fragment" : "43; ..."
+          }
+        },
+        {
+          "op" : "add_header",
+          "parameters" : [
+            {
+              "type" : "header",
+              "value" : "srv6_list[0]"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 462,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6_list[0].setValid()"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6_list[0]", "segment_id"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 3
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 463,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6_list[0].segment_id = s4"
+          }
+        },
+        {
+          "op" : "add_header",
+          "parameters" : [
+            {
+              "type" : "header",
+              "value" : "srv6_list[1]"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 464,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6_list[1].setValid()"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6_list[1]", "segment_id"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 2
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 465,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6_list[1].segment_id = s3"
+          }
+        },
+        {
+          "op" : "add_header",
+          "parameters" : [
+            {
+              "type" : "header",
+              "value" : "srv6_list[2]"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 466,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6_list[2].setValid()"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6_list[2]", "segment_id"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 1
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 467,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6_list[2].segment_id = s2"
+          }
+        },
+        {
+          "op" : "add_header",
+          "parameters" : [
+            {
+              "type" : "header",
+              "value" : "srv6_list[3]"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 468,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6_list[3].setValid()"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6_list[3]", "segment_id"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 0
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 469,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6_list[3].segment_id = s1"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "IngressPipeImpl.srv6_t_insert_5",
+      "id" : 18,
+      "runtime_data" : [
+        {
+          "name" : "s1",
+          "bitwidth" : 128
+        },
+        {
+          "name" : "s2",
+          "bitwidth" : 128
+        },
+        {
+          "name" : "s3",
+          "bitwidth" : 128
+        },
+        {
+          "name" : "s4",
+          "bitwidth" : 128
+        },
+        {
+          "name" : "s5",
+          "bitwidth" : 128
+        }
+      ],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["ipv6", "dst_addr"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 0
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 473,
+            "column" : 8,
+            "source_fragment" : "hdr.ipv6.dst_addr = s1"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["ipv6", "payload_len"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "+",
+                      "left" : {
+                        "type" : "field",
+                        "value" : ["ipv6", "payload_len"]
+                      },
+                      "right" : {
+                        "type" : "hexstr",
+                        "value" : "0x0058"
+                      }
+                    }
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 474,
+            "column" : 8,
+            "source_fragment" : "hdr.ipv6.payload_len = hdr.ipv6.payload_len + 88"
+          }
+        },
+        {
+          "op" : "add_header",
+          "parameters" : [
+            {
+              "type" : "header",
+              "value" : "srv6h"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 425,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6h.setValid()"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6h", "next_hdr"]
+            },
+            {
+              "type" : "field",
+              "value" : ["ipv6", "next_hdr"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 426,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6h.next_hdr = hdr.ipv6.next_hdr"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6h", "hdr_ext_len"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x0a"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 427,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6h.hdr_ext_len = num_segments * 2"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6h", "routing_type"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x04"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 428,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6h.routing_type = 4"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6h", "segment_left"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x04"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 429,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6h.segment_left = num_segments - 1"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6h", "last_entry"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x04"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 430,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6h.last_entry = num_segments - 1"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6h", "flags"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x00"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 431,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6h.flags = 0"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6h", "tag"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x0000"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 432,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6h.tag = 0"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["ipv6", "next_hdr"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x2b"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 21,
+            "column" : 29,
+            "source_fragment" : "43; ..."
+          }
+        },
+        {
+          "op" : "add_header",
+          "parameters" : [
+            {
+              "type" : "header",
+              "value" : "srv6_list[0]"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 476,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6_list[0].setValid()"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6_list[0]", "segment_id"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 4
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 477,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6_list[0].segment_id = s5"
+          }
+        },
+        {
+          "op" : "add_header",
+          "parameters" : [
+            {
+              "type" : "header",
+              "value" : "srv6_list[1]"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 478,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6_list[1].setValid()"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6_list[1]", "segment_id"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 3
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 479,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6_list[1].segment_id = s4"
+          }
+        },
+        {
+          "op" : "add_header",
+          "parameters" : [
+            {
+              "type" : "header",
+              "value" : "srv6_list[2]"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 480,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6_list[2].setValid()"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6_list[2]", "segment_id"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 2
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 481,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6_list[2].segment_id = s3"
+          }
+        },
+        {
+          "op" : "add_header",
+          "parameters" : [
+            {
+              "type" : "header",
+              "value" : "srv6_list[3]"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 482,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6_list[3].setValid()"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6_list[3]", "segment_id"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 1
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 483,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6_list[3].segment_id = s2"
+          }
+        },
+        {
+          "op" : "add_header",
+          "parameters" : [
+            {
+              "type" : "header",
+              "value" : "srv6_list[4]"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 484,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6_list[4].setValid()"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6_list[4]", "segment_id"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 0
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 485,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6_list[4].segment_id = s1"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "IngressPipeImpl.srv6_t_insert_6",
+      "id" : 19,
+      "runtime_data" : [
+        {
+          "name" : "s1",
+          "bitwidth" : 128
+        },
+        {
+          "name" : "s2",
+          "bitwidth" : 128
+        },
+        {
+          "name" : "s3",
+          "bitwidth" : 128
+        },
+        {
+          "name" : "s4",
+          "bitwidth" : 128
+        },
+        {
+          "name" : "s5",
+          "bitwidth" : 128
+        },
+        {
+          "name" : "s6",
+          "bitwidth" : 128
+        }
+      ],
+      "primitives" : [
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["ipv6", "dst_addr"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 0
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 490,
+            "column" : 8,
+            "source_fragment" : "hdr.ipv6.dst_addr = s1"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["ipv6", "payload_len"]
+            },
+            {
+              "type" : "expression",
+              "value" : {
+                "type" : "expression",
+                "value" : {
+                  "op" : "&",
+                  "left" : {
+                    "type" : "expression",
+                    "value" : {
+                      "op" : "+",
+                      "left" : {
+                        "type" : "field",
+                        "value" : ["ipv6", "payload_len"]
+                      },
+                      "right" : {
+                        "type" : "hexstr",
+                        "value" : "0x0068"
+                      }
+                    }
+                  },
+                  "right" : {
+                    "type" : "hexstr",
+                    "value" : "0xffff"
+                  }
+                }
+              }
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 491,
+            "column" : 8,
+            "source_fragment" : "hdr.ipv6.payload_len = hdr.ipv6.payload_len + 104"
+          }
+        },
+        {
+          "op" : "add_header",
+          "parameters" : [
+            {
+              "type" : "header",
+              "value" : "srv6h"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 425,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6h.setValid()"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6h", "next_hdr"]
+            },
+            {
+              "type" : "field",
+              "value" : ["ipv6", "next_hdr"]
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 426,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6h.next_hdr = hdr.ipv6.next_hdr"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6h", "hdr_ext_len"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x0c"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 427,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6h.hdr_ext_len = num_segments * 2"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6h", "routing_type"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x04"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 428,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6h.routing_type = 4"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6h", "segment_left"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x05"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 429,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6h.segment_left = num_segments - 1"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6h", "last_entry"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x05"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 430,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6h.last_entry = num_segments - 1"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6h", "flags"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x00"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 431,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6h.flags = 0"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6h", "tag"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x0000"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 432,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6h.tag = 0"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["ipv6", "next_hdr"]
+            },
+            {
+              "type" : "hexstr",
+              "value" : "0x2b"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 21,
+            "column" : 29,
+            "source_fragment" : "43; ..."
+          }
+        },
+        {
+          "op" : "add_header",
+          "parameters" : [
+            {
+              "type" : "header",
+              "value" : "srv6_list[0]"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 493,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6_list[0].setValid()"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6_list[0]", "segment_id"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 5
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 494,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6_list[0].segment_id = s6"
+          }
+        },
+        {
+          "op" : "add_header",
+          "parameters" : [
+            {
+              "type" : "header",
+              "value" : "srv6_list[1]"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 495,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6_list[1].setValid()"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6_list[1]", "segment_id"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 4
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 496,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6_list[1].segment_id = s5"
+          }
+        },
+        {
+          "op" : "add_header",
+          "parameters" : [
+            {
+              "type" : "header",
+              "value" : "srv6_list[2]"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 497,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6_list[2].setValid()"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6_list[2]", "segment_id"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 3
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 498,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6_list[2].segment_id = s4"
+          }
+        },
+        {
+          "op" : "add_header",
+          "parameters" : [
+            {
+              "type" : "header",
+              "value" : "srv6_list[3]"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 499,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6_list[3].setValid()"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6_list[3]", "segment_id"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 2
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 500,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6_list[3].segment_id = s3"
+          }
+        },
+        {
+          "op" : "add_header",
+          "parameters" : [
+            {
+              "type" : "header",
+              "value" : "srv6_list[4]"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 501,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6_list[4].setValid()"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6_list[4]", "segment_id"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 1
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 502,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6_list[4].segment_id = s2"
+          }
+        },
+        {
+          "op" : "add_header",
+          "parameters" : [
+            {
+              "type" : "header",
+              "value" : "srv6_list[5]"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 503,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6_list[5].setValid()"
+          }
+        },
+        {
+          "op" : "assign",
+          "parameters" : [
+            {
+              "type" : "field",
+              "value" : ["srv6_list[5]", "segment_id"]
+            },
+            {
+              "type" : "runtime_data",
+              "value" : 0
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 504,
+            "column" : 8,
+            "source_fragment" : "hdr.srv6_list[5].segment_id = s1"
+          }
+        }
+      ]
+    },
+    {
+      "name" : "IngressPipeImpl.srv6_pop",
+      "id" : 20,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -2567,7 +3859,7 @@
           ],
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 471,
+            "line" : 523,
             "column" : 6,
             "source_fragment" : "hdr.ipv6.next_hdr = hdr.srv6h.next_hdr"
           }
@@ -2679,7 +3971,7 @@
           ],
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 473,
+            "line" : 525,
             "column" : 6,
             "source_fragment" : "hdr.ipv6.payload_len = hdr.ipv6.payload_len - srv6h_size"
           }
@@ -2694,7 +3986,7 @@
           ],
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 475,
+            "line" : 527,
             "column" : 6,
             "source_fragment" : "hdr.srv6h.setInvalid()"
           }
@@ -2709,7 +4001,7 @@
           ],
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 476,
+            "line" : 528,
             "column" : 6,
             "source_fragment" : "hdr.srv6_list[0].setInvalid()"
           }
@@ -2724,7 +4016,7 @@
           ],
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 477,
+            "line" : 529,
             "column" : 6,
             "source_fragment" : "hdr.srv6_list[1].setInvalid()"
           }
@@ -2739,16 +4031,61 @@
           ],
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 478,
+            "line" : 530,
             "column" : 6,
             "source_fragment" : "hdr.srv6_list[2].setInvalid()"
+          }
+        },
+        {
+          "op" : "remove_header",
+          "parameters" : [
+            {
+              "type" : "header",
+              "value" : "srv6_list[3]"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 531,
+            "column" : 6,
+            "source_fragment" : "hdr.srv6_list[3].setInvalid()"
+          }
+        },
+        {
+          "op" : "remove_header",
+          "parameters" : [
+            {
+              "type" : "header",
+              "value" : "srv6_list[4]"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 532,
+            "column" : 6,
+            "source_fragment" : "hdr.srv6_list[4].setInvalid()"
+          }
+        },
+        {
+          "op" : "remove_header",
+          "parameters" : [
+            {
+              "type" : "header",
+              "value" : "srv6_list[5]"
+            }
+          ],
+          "source_info" : {
+            "filename" : "p4src/ngsdn_tutorial.p4",
+            "line" : 533,
+            "column" : 6,
+            "source_fragment" : "hdr.srv6_list[5].setInvalid()"
           }
         }
       ]
     },
     {
       "name" : "IngressPipeImpl.send_to_cpu",
-      "id" : 18,
+      "id" : 21,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -2765,7 +4102,7 @@
           ],
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 482,
+            "line" : 537,
             "column" : 8,
             "source_fragment" : "standard_metadata.egress_spec = 255"
           }
@@ -2774,7 +4111,7 @@
     },
     {
       "name" : "IngressPipeImpl.clone_to_cpu",
-      "id" : 19,
+      "id" : 22,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -2791,7 +4128,7 @@
           ],
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 486,
+            "line" : 541,
             "column" : 8,
             "source_fragment" : "clone_preserving_field_list(CloneType.I2E, 99, 1)"
           }
@@ -2799,8 +4136,8 @@
       ]
     },
     {
-      "name" : "ngsdn_tutorial514",
-      "id" : 20,
+      "name" : "ngsdn_tutorial569",
+      "id" : 23,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -2817,7 +4154,7 @@
           ],
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 514,
+            "line" : 569,
             "column" : 12,
             "source_fragment" : "standard_metadata.egress_spec = hdr.cpu_out.egress_port"
           }
@@ -2832,7 +4169,7 @@
           ],
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 515,
+            "line" : 570,
             "column" : 12,
             "source_fragment" : "hdr.cpu_out.setInvalid()"
           }
@@ -2842,7 +4179,7 @@
           "parameters" : [],
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 516,
+            "line" : 571,
             "column" : 12,
             "source_fragment" : "exit"
           }
@@ -2850,8 +4187,8 @@
       ]
     },
     {
-      "name" : "ngsdn_tutorial510",
-      "id" : 21,
+      "name" : "ngsdn_tutorial565",
+      "id" : 24,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -2868,7 +4205,7 @@
           ],
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 510,
+            "line" : 565,
             "column" : 8,
             "source_fragment" : "local_metadata.ingress_port = standard_metadata.ingress_port"
           }
@@ -2900,7 +4237,7 @@
           ],
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 511,
+            "line" : 566,
             "column" : 35,
             "source_fragment" : "(bit<32>)standard_metadata.ingress_port"
           }
@@ -2919,7 +4256,7 @@
           ],
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 511,
+            "line" : 566,
             "column" : 8,
             "source_fragment" : "port_ingress_counter.count((bit<32>)standard_metadata.ingress_port)"
           }
@@ -2927,8 +4264,8 @@
       ]
     },
     {
-      "name" : "ngsdn_tutorial523",
-      "id" : 22,
+      "name" : "ngsdn_tutorial578",
+      "id" : 25,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -2955,7 +4292,7 @@
           ],
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 523,
+            "line" : 578,
             "column" : 16,
             "source_fragment" : "do_l3_l2 = false"
           }
@@ -2963,8 +4300,8 @@
       ]
     },
     {
-      "name" : "ngsdn_tutorial519",
-      "id" : 23,
+      "name" : "ngsdn_tutorial574",
+      "id" : 26,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -2991,7 +4328,7 @@
           ],
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 519,
+            "line" : 574,
             "column" : 8,
             "source_fragment" : "bool do_l3_l2 = true;"
           }
@@ -3000,7 +4337,7 @@
     },
     {
       "name" : "act",
-      "id" : 24,
+      "id" : 27,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -3030,7 +4367,7 @@
     },
     {
       "name" : "act_0",
-      "id" : 25,
+      "id" : 28,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -3059,8 +4396,8 @@
       ]
     },
     {
-      "name" : "ngsdn_tutorial528",
-      "id" : 26,
+      "name" : "ngsdn_tutorial583",
+      "id" : 29,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -3094,7 +4431,7 @@
           ],
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 528,
+            "line" : 583,
             "column" : 16,
             "source_fragment" : "hdr.ipv6.isValid() && my_station_table.apply().hit"
           }
@@ -3102,8 +4439,8 @@
       ]
     },
     {
-      "name" : "ngsdn_tutorial528_0",
-      "id" : 27,
+      "name" : "ngsdn_tutorial583_0",
+      "id" : 30,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -3130,7 +4467,7 @@
           ],
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 528,
+            "line" : 583,
             "column" : 16,
             "source_fragment" : "hdr.ipv6.isValid() && my_station_table.apply().hit"
           }
@@ -3138,8 +4475,8 @@
       ]
     },
     {
-      "name" : "ngsdn_tutorial560",
-      "id" : 28,
+      "name" : "ngsdn_tutorial615",
+      "id" : 31,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -3152,7 +4489,7 @@
           ],
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 560,
+            "line" : 615,
             "column" : 12,
             "source_fragment" : "hdr.cpu_in.setValid()"
           }
@@ -3171,7 +4508,7 @@
           ],
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 561,
+            "line" : 616,
             "column" : 12,
             "source_fragment" : "hdr.cpu_in.ingress_port = local_metadata.ingress_port"
           }
@@ -3203,7 +4540,7 @@
           ],
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 562,
+            "line" : 617,
             "column" : 38,
             "source_fragment" : "(bit<32>)standard_metadata.egress_port"
           }
@@ -3222,7 +4559,7 @@
           ],
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 562,
+            "line" : 617,
             "column" : 12,
             "source_fragment" : "port_egress_counter.count((bit<32>)standard_metadata.egress_port)"
           }
@@ -3232,7 +4569,7 @@
           "parameters" : [],
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 563,
+            "line" : 618,
             "column" : 12,
             "source_fragment" : "exit"
           }
@@ -3240,8 +4577,8 @@
       ]
     },
     {
-      "name" : "ngsdn_tutorial568",
-      "id" : 29,
+      "name" : "ngsdn_tutorial623",
+      "id" : 32,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -3254,7 +4591,7 @@
           ],
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 568,
+            "line" : 623,
             "column" : 12,
             "source_fragment" : "mark_to_drop(standard_metadata)"
           }
@@ -3264,7 +4601,7 @@
           "parameters" : [],
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 569,
+            "line" : 624,
             "column" : 12,
             "source_fragment" : "exit"
           }
@@ -3272,8 +4609,8 @@
       ]
     },
     {
-      "name" : "ngsdn_tutorial572",
-      "id" : 30,
+      "name" : "ngsdn_tutorial627",
+      "id" : 33,
       "runtime_data" : [],
       "primitives" : [
         {
@@ -3303,7 +4640,7 @@
           ],
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 572,
+            "line" : 627,
             "column" : 34,
             "source_fragment" : "(bit<32>)standard_metadata.egress_port"
           }
@@ -3322,7 +4659,7 @@
           ],
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 572,
+            "line" : 627,
             "column" : 8,
             "source_fragment" : "port_egress_counter.count((bit<32>)standard_metadata.egress_port)"
           }
@@ -3340,14 +4677,14 @@
         "column" : 8,
         "source_fragment" : "IngressPipeImpl"
       },
-      "init_table" : "tbl_ngsdn_tutorial510",
+      "init_table" : "tbl_ngsdn_tutorial565",
       "tables" : [
         {
-          "name" : "tbl_ngsdn_tutorial510",
+          "name" : "tbl_ngsdn_tutorial565",
           "id" : 0,
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 510,
+            "line" : 565,
             "column" : 36,
             "source_fragment" : "= standard_metadata.ingress_port; ..."
           },
@@ -3358,25 +4695,25 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [21],
-          "actions" : ["ngsdn_tutorial510"],
+          "action_ids" : [24],
+          "actions" : ["ngsdn_tutorial565"],
           "base_default_next" : "node_3",
           "next_tables" : {
-            "ngsdn_tutorial510" : "node_3"
+            "ngsdn_tutorial565" : "node_3"
           },
           "default_entry" : {
-            "action_id" : 21,
+            "action_id" : 24,
             "action_const" : true,
             "action_data" : [],
             "action_entry_const" : true
           }
         },
         {
-          "name" : "tbl_ngsdn_tutorial514",
+          "name" : "tbl_ngsdn_tutorial569",
           "id" : 1,
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 514,
+            "line" : 569,
             "column" : 42,
             "source_fragment" : "= hdr.cpu_out.egress_port; ..."
           },
@@ -3387,25 +4724,25 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [20],
-          "actions" : ["ngsdn_tutorial514"],
-          "base_default_next" : "tbl_ngsdn_tutorial519",
+          "action_ids" : [23],
+          "actions" : ["ngsdn_tutorial569"],
+          "base_default_next" : "tbl_ngsdn_tutorial574",
           "next_tables" : {
-            "ngsdn_tutorial514" : "tbl_ngsdn_tutorial519"
+            "ngsdn_tutorial569" : "tbl_ngsdn_tutorial574"
           },
           "default_entry" : {
-            "action_id" : 20,
+            "action_id" : 23,
             "action_const" : true,
             "action_data" : [],
             "action_entry_const" : true
           }
         },
         {
-          "name" : "tbl_ngsdn_tutorial519",
+          "name" : "tbl_ngsdn_tutorial574",
           "id" : 2,
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 519,
+            "line" : 574,
             "column" : 8,
             "source_fragment" : "bool do_l3_l2 = true;"
           },
@@ -3416,14 +4753,14 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [23],
-          "actions" : ["ngsdn_tutorial519"],
+          "action_ids" : [26],
+          "actions" : ["ngsdn_tutorial574"],
           "base_default_next" : "node_6",
           "next_tables" : {
-            "ngsdn_tutorial519" : "node_6"
+            "ngsdn_tutorial574" : "node_6"
           },
           "default_entry" : {
-            "action_id" : 23,
+            "action_id" : 26,
             "action_const" : true,
             "action_data" : [],
             "action_entry_const" : true
@@ -3456,7 +4793,7 @@
           "actions" : ["IngressPipeImpl.ndp_ns_to_na", "NoAction"],
           "base_default_next" : null,
           "next_tables" : {
-            "__HIT__" : "tbl_ngsdn_tutorial523",
+            "__HIT__" : "tbl_ngsdn_tutorial578",
             "__MISS__" : "node_9"
           },
           "default_entry" : {
@@ -3467,11 +4804,11 @@
           }
         },
         {
-          "name" : "tbl_ngsdn_tutorial523",
+          "name" : "tbl_ngsdn_tutorial578",
           "id" : 4,
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 523,
+            "line" : 578,
             "column" : 25,
             "source_fragment" : "="
           },
@@ -3482,14 +4819,14 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [22],
-          "actions" : ["ngsdn_tutorial523"],
+          "action_ids" : [25],
+          "actions" : ["ngsdn_tutorial578"],
           "base_default_next" : "node_9",
           "next_tables" : {
-            "ngsdn_tutorial523" : "node_9"
+            "ngsdn_tutorial578" : "node_9"
           },
           "default_entry" : {
-            "action_id" : 22,
+            "action_id" : 25,
             "action_const" : true,
             "action_data" : [],
             "action_entry_const" : true
@@ -3542,14 +4879,14 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [24],
+          "action_ids" : [27],
           "actions" : ["act"],
-          "base_default_next" : "tbl_ngsdn_tutorial528",
+          "base_default_next" : "tbl_ngsdn_tutorial583",
           "next_tables" : {
-            "act" : "tbl_ngsdn_tutorial528"
+            "act" : "tbl_ngsdn_tutorial583"
           },
           "default_entry" : {
-            "action_id" : 24,
+            "action_id" : 27,
             "action_const" : true,
             "action_data" : [],
             "action_entry_const" : true
@@ -3565,25 +4902,25 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [25],
+          "action_ids" : [28],
           "actions" : ["act_0"],
-          "base_default_next" : "tbl_ngsdn_tutorial528",
+          "base_default_next" : "tbl_ngsdn_tutorial583",
           "next_tables" : {
-            "act_0" : "tbl_ngsdn_tutorial528"
+            "act_0" : "tbl_ngsdn_tutorial583"
           },
           "default_entry" : {
-            "action_id" : 25,
+            "action_id" : 28,
             "action_const" : true,
             "action_data" : [],
             "action_entry_const" : true
           }
         },
         {
-          "name" : "tbl_ngsdn_tutorial528",
+          "name" : "tbl_ngsdn_tutorial583",
           "id" : 8,
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 528,
+            "line" : 583,
             "column" : 16,
             "source_fragment" : "hdr.ipv6.isValid() && my_station_table.apply().hit"
           },
@@ -3594,25 +4931,25 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [26],
-          "actions" : ["ngsdn_tutorial528"],
+          "action_ids" : [29],
+          "actions" : ["ngsdn_tutorial583"],
           "base_default_next" : "node_16",
           "next_tables" : {
-            "ngsdn_tutorial528" : "node_16"
+            "ngsdn_tutorial583" : "node_16"
           },
           "default_entry" : {
-            "action_id" : 26,
+            "action_id" : 29,
             "action_const" : true,
             "action_data" : [],
             "action_entry_const" : true
           }
         },
         {
-          "name" : "tbl_ngsdn_tutorial528_0",
+          "name" : "tbl_ngsdn_tutorial583_0",
           "id" : 9,
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 528,
+            "line" : 583,
             "column" : 16,
             "source_fragment" : "hdr.ipv6.isValid() && my_station_table.apply().hit"
           },
@@ -3623,14 +4960,14 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [27],
-          "actions" : ["ngsdn_tutorial528_0"],
+          "action_ids" : [30],
+          "actions" : ["ngsdn_tutorial583_0"],
           "base_default_next" : "node_16",
           "next_tables" : {
-            "ngsdn_tutorial528_0" : "node_16"
+            "ngsdn_tutorial583_0" : "node_16"
           },
           "default_entry" : {
-            "action_id" : 27,
+            "action_id" : 30,
             "action_const" : true,
             "action_data" : [],
             "action_entry_const" : true
@@ -3678,7 +5015,7 @@
           "id" : 11,
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 531,
+            "line" : 586,
             "column" : 24,
             "source_fragment" : "srv6_pop()"
           },
@@ -3689,14 +5026,14 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [17],
+          "action_ids" : [20],
           "actions" : ["IngressPipeImpl.srv6_pop"],
           "base_default_next" : "IngressPipeImpl.routing_v6_table",
           "next_tables" : {
             "IngressPipeImpl.srv6_pop" : "IngressPipeImpl.routing_v6_table"
           },
           "default_entry" : {
-            "action_id" : 17,
+            "action_id" : 20,
             "action_const" : true,
             "action_data" : [],
             "action_entry_const" : true
@@ -3707,7 +5044,7 @@
           "id" : 12,
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 459,
+            "line" : 508,
             "column" : 10,
             "source_fragment" : "srv6_transit"
           },
@@ -3725,12 +5062,15 @@
           "with_counters" : true,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [15, 16, 4],
-          "actions" : ["IngressPipeImpl.srv6_t_insert_2", "IngressPipeImpl.srv6_t_insert_3", "NoAction"],
+          "action_ids" : [15, 16, 17, 18, 19, 4],
+          "actions" : ["IngressPipeImpl.srv6_t_insert_2", "IngressPipeImpl.srv6_t_insert_3", "IngressPipeImpl.srv6_t_insert_4", "IngressPipeImpl.srv6_t_insert_5", "IngressPipeImpl.srv6_t_insert_6", "NoAction"],
           "base_default_next" : "IngressPipeImpl.routing_v6_table",
           "next_tables" : {
             "IngressPipeImpl.srv6_t_insert_2" : "IngressPipeImpl.routing_v6_table",
             "IngressPipeImpl.srv6_t_insert_3" : "IngressPipeImpl.routing_v6_table",
+            "IngressPipeImpl.srv6_t_insert_4" : "IngressPipeImpl.routing_v6_table",
+            "IngressPipeImpl.srv6_t_insert_5" : "IngressPipeImpl.routing_v6_table",
+            "IngressPipeImpl.srv6_t_insert_6" : "IngressPipeImpl.routing_v6_table",
             "NoAction" : "IngressPipeImpl.routing_v6_table"
           },
           "default_entry" : {
@@ -3777,7 +5117,7 @@
           "id" : 14,
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 538,
+            "line" : 593,
             "column" : 46,
             "source_fragment" : "drop()"
           },
@@ -3880,7 +5220,7 @@
           "id" : 17,
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 489,
+            "line" : 544,
             "column" : 10,
             "source_fragment" : "acl_table"
           },
@@ -3940,7 +5280,7 @@
           "with_counters" : true,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [18, 19, 8, 5],
+          "action_ids" : [21, 22, 8, 5],
           "actions" : ["IngressPipeImpl.send_to_cpu", "IngressPipeImpl.clone_to_cpu", "IngressPipeImpl.drop", "NoAction"],
           "base_default_next" : null,
           "next_tables" : {
@@ -4005,7 +5345,7 @@
           "id" : 0,
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 513,
+            "line" : 568,
             "column" : 12,
             "source_fragment" : "hdr.cpu_out.isValid()"
           },
@@ -4020,15 +5360,15 @@
               }
             }
           },
-          "true_next" : "tbl_ngsdn_tutorial514",
-          "false_next" : "tbl_ngsdn_tutorial519"
+          "true_next" : "tbl_ngsdn_tutorial569",
+          "false_next" : "tbl_ngsdn_tutorial574"
         },
         {
           "name" : "node_6",
           "id" : 1,
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 521,
+            "line" : 576,
             "column" : 12,
             "source_fragment" : "hdr.icmpv6.isValid() && hdr.icmpv6.type == ICMP6_TYPE_NS"
           },
@@ -4071,7 +5411,7 @@
           "id" : 2,
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 527,
+            "line" : 582,
             "column" : 12,
             "source_fragment" : "do_l3_l2"
           },
@@ -4094,7 +5434,7 @@
           "id" : 3,
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 528,
+            "line" : 583,
             "column" : 16,
             "source_fragment" : "hdr.ipv6.isValid()"
           },
@@ -4110,7 +5450,7 @@
             }
           },
           "true_next" : "IngressPipeImpl.my_station_table",
-          "false_next" : "tbl_ngsdn_tutorial528_0"
+          "false_next" : "tbl_ngsdn_tutorial583_0"
         },
         {
           "name" : "node_16",
@@ -4134,7 +5474,7 @@
           "id" : 5,
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 530,
+            "line" : 585,
             "column" : 24,
             "source_fragment" : "hdr.srv6h.isValid() && hdr.srv6h.segment_left == 0"
           },
@@ -4177,7 +5517,7 @@
           "id" : 6,
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 538,
+            "line" : 593,
             "column" : 19,
             "source_fragment" : "hdr.ipv6.hop_limit == 0"
           },
@@ -4205,18 +5545,18 @@
       "id" : 1,
       "source_info" : {
         "filename" : "p4src/ngsdn_tutorial.p4",
-        "line" : 551,
+        "line" : 606,
         "column" : 8,
         "source_fragment" : "EgressPipeImpl"
       },
       "init_table" : "node_29",
       "tables" : [
         {
-          "name" : "tbl_ngsdn_tutorial560",
+          "name" : "tbl_ngsdn_tutorial615",
           "id" : 18,
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 560,
+            "line" : 615,
             "column" : 12,
             "source_fragment" : "hdr.cpu_in.setValid(); ..."
           },
@@ -4227,25 +5567,25 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [28],
-          "actions" : ["ngsdn_tutorial560"],
+          "action_ids" : [31],
+          "actions" : ["ngsdn_tutorial615"],
           "base_default_next" : "node_31",
           "next_tables" : {
-            "ngsdn_tutorial560" : "node_31"
+            "ngsdn_tutorial615" : "node_31"
           },
           "default_entry" : {
-            "action_id" : 28,
+            "action_id" : 31,
             "action_const" : true,
             "action_data" : [],
             "action_entry_const" : true
           }
         },
         {
-          "name" : "tbl_ngsdn_tutorial568",
+          "name" : "tbl_ngsdn_tutorial623",
           "id" : 19,
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 568,
+            "line" : 623,
             "column" : 12,
             "source_fragment" : "mark_to_drop(standard_metadata); ..."
           },
@@ -4256,25 +5596,25 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [29],
-          "actions" : ["ngsdn_tutorial568"],
-          "base_default_next" : "tbl_ngsdn_tutorial572",
+          "action_ids" : [32],
+          "actions" : ["ngsdn_tutorial623"],
+          "base_default_next" : "tbl_ngsdn_tutorial627",
           "next_tables" : {
-            "ngsdn_tutorial568" : "tbl_ngsdn_tutorial572"
+            "ngsdn_tutorial623" : "tbl_ngsdn_tutorial627"
           },
           "default_entry" : {
-            "action_id" : 29,
+            "action_id" : 32,
             "action_const" : true,
             "action_data" : [],
             "action_entry_const" : true
           }
         },
         {
-          "name" : "tbl_ngsdn_tutorial572",
+          "name" : "tbl_ngsdn_tutorial627",
           "id" : 20,
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 572,
+            "line" : 627,
             "column" : 8,
             "source_fragment" : "port_egress_counter.count((bit<32>)standard_metadata.egress_port)"
           },
@@ -4285,14 +5625,14 @@
           "with_counters" : false,
           "support_timeout" : false,
           "direct_meters" : null,
-          "action_ids" : [30],
-          "actions" : ["ngsdn_tutorial572"],
+          "action_ids" : [33],
+          "actions" : ["ngsdn_tutorial627"],
           "base_default_next" : null,
           "next_tables" : {
-            "ngsdn_tutorial572" : null
+            "ngsdn_tutorial627" : null
           },
           "default_entry" : {
-            "action_id" : 30,
+            "action_id" : 33,
             "action_const" : true,
             "action_data" : [],
             "action_entry_const" : true
@@ -4306,7 +5646,7 @@
           "id" : 7,
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 559,
+            "line" : 614,
             "column" : 12,
             "source_fragment" : "standard_metadata.egress_port == 255"
           },
@@ -4324,7 +5664,7 @@
               }
             }
           },
-          "true_next" : "tbl_ngsdn_tutorial560",
+          "true_next" : "tbl_ngsdn_tutorial615",
           "false_next" : "node_31"
         },
         {
@@ -4332,7 +5672,7 @@
           "id" : 8,
           "source_info" : {
             "filename" : "p4src/ngsdn_tutorial.p4",
-            "line" : 566,
+            "line" : 621,
             "column" : 12,
             "source_fragment" : "local_metadata.is_multicast == true && ..."
           },
@@ -4367,8 +5707,8 @@
               }
             }
           },
-          "true_next" : "tbl_ngsdn_tutorial568",
-          "false_next" : "tbl_ngsdn_tutorial572"
+          "true_next" : "tbl_ngsdn_tutorial623",
+          "false_next" : "tbl_ngsdn_tutorial627"
         }
       ]
     }
@@ -4379,7 +5719,7 @@
       "id" : 0,
       "source_info" : {
         "filename" : "p4src/ngsdn_tutorial.p4",
-        "line" : 581,
+        "line" : 636,
         "column" : 8,
         "source_fragment" : "update_checksum(hdr.ndp.isValid(), ..."
       },

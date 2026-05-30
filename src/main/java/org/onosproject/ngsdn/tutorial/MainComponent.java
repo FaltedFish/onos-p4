@@ -21,6 +21,7 @@ import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.onosproject.ngsdn.tutorial.common.FabricDeviceConfig;
+import org.onosproject.ngsdn.tutorial.common.DomainBoundaryConfig;
 import org.onosproject.ngsdn.tutorial.pipeconf.PipeconfLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,6 +78,16 @@ public class MainComponent {
                 }
             };
 
+    private final ConfigFactory<ApplicationId, DomainBoundaryConfig> domainBoundaryConfigFactory =
+            new ConfigFactory<ApplicationId, DomainBoundaryConfig>(
+                    SubjectFactories.APP_SUBJECT_FACTORY, DomainBoundaryConfig.class,
+                    DomainBoundaryConfig.CONFIG_KEY) {
+                @Override
+                public DomainBoundaryConfig createConfig() {
+                    return new DomainBoundaryConfig();
+                }
+            };
+
     private ApplicationId appId;
 
     // For the sake of simplicity and to facilitate reading logs, use a
@@ -100,11 +111,13 @@ public class MainComponent {
                                       "useBddp", "false", false);
 
         configRegistry.registerConfigFactory(fabricConfigFactory);
+        configRegistry.registerConfigFactory(domainBoundaryConfigFactory);
         log.info("Started");
     }
 
     @Deactivate
     protected void deactivate() {
+        configRegistry.unregisterConfigFactory(domainBoundaryConfigFactory);
         configRegistry.unregisterConfigFactory(fabricConfigFactory);
 
         cleanUp();

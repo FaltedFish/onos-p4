@@ -1,4 +1,5 @@
 /home/p4/onos-ngsdn-app/src/main/java/org/onosproject/ngsdn/tutorial/Bmv2PortStatisticsProvider.java
+/home/p4/onos-ngsdn-app/src/main/java/org/onosproject/ngsdn/tutorial/DomainBoundaryRoutingComponent.java
 /home/p4/onos-ngsdn-app/src/main/java/org/onosproject/ngsdn/tutorial/pipeconf/package-info.java
 /home/p4/onos-ngsdn-app/src/main/java/org/onosproject/ngsdn/tutorial/common/Utils.java
 /home/p4/onos-ngsdn-app/src/main/java/org/onosproject/ngsdn/tutorial/cli/Srv6ClearCommand.java
@@ -14,6 +15,7 @@
 /home/p4/onos-ngsdn-app/src/main/java/org/onosproject/ngsdn/tutorial/common/FabricDeviceConfig.java
 /home/p4/onos-ngsdn-app/src/main/java/org/onosproject/ngsdn/tutorial/MainComponent.java
 /home/p4/onos-ngsdn-app/src/main/java/org/onosproject/ngsdn/tutorial/cli/Srv6SidCompleter.java
+/home/p4/onos-ngsdn-app/src/main/java/org/onosproject/ngsdn/tutorial/common/DomainBoundaryConfig.java
 /home/p4/onos-ngsdn-app/src/main/java/org/onosproject/ngsdn/tutorial/Srv6Component.java
 /home/p4/onos-ngsdn-app/src/main/java/org/onosproject/ngsdn/tutorial/cli/package-info.java
 /home/p4/onos-ngsdn-app/src/main/java/org/onosproject/ngsdn/tutorial/pipeconf/PipeconfLoader.java

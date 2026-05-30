@@ -65,6 +65,8 @@ import static org.onosproject.ngsdn.tutorial.AppConstants.INITIAL_SETUP_DELAY;
 public class Srv6Component {
 
     private static final Logger log = LoggerFactory.getLogger(Srv6Component.class);
+    private static final int MIN_SRV6_SEGMENTS = 2;
+    private static final int MAX_SRV6_SEGMENTS = 6;
 
     //--------------------------------------------------------------------------
     // ONOS CORE SERVICE BINDING
@@ -174,8 +176,10 @@ public class Srv6Component {
      */
     public void insertSrv6InsertRule(DeviceId deviceId, Ip6Address destIp, int prefixLength,
                                      List<Ip6Address> segmentList) {
-        if (segmentList.size() < 2 || segmentList.size() > 3) {
-            throw new IllegalArgumentException("List of " + segmentList.size() + " segments is not supported");
+        if (segmentList.size() < MIN_SRV6_SEGMENTS || segmentList.size() > MAX_SRV6_SEGMENTS) {
+            throw new IllegalArgumentException(
+                    "List of " + segmentList.size() + " segments is not supported; expected "
+                            + MIN_SRV6_SEGMENTS + " to " + MAX_SRV6_SEGMENTS);
         }
 
         // *** TODO EXERCISE 6

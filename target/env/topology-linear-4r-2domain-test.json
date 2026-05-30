@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "name": "ring-4r-1h",
+  "name": "linear-4r-2domain",
   "defaults": {
-    "grpcBase": 9559,
-    "thriftBase": 9090,
+    "grpcBase": 9659,
+    "thriftBase": 9190,
     "deviceIdBase": 0,
     "cpuPort": 255,
     "ipv6Prefix": "2001"
@@ -11,36 +11,40 @@
   "routers": [
     {
       "name": "r1",
+      "domain": "c1",
       "deviceId": 0,
-      "grpcPort": 9559,
-      "thriftPort": 9090,
+      "grpcPort": 9659,
+      "thriftPort": 9190,
       "cpuPort": 255,
       "myStationMac": "00:aa:00:00:00:01",
       "mySid": "fc00:0:1::"
     },
     {
       "name": "r2",
+      "domain": "c1",
       "deviceId": 1,
-      "grpcPort": 9560,
-      "thriftPort": 9091,
+      "grpcPort": 9660,
+      "thriftPort": 9191,
       "cpuPort": 255,
       "myStationMac": "00:aa:00:00:00:02",
       "mySid": "fc00:0:2::"
     },
     {
       "name": "r3",
+      "domain": "c2",
       "deviceId": 2,
-      "grpcPort": 9561,
-      "thriftPort": 9092,
+      "grpcPort": 9661,
+      "thriftPort": 9192,
       "cpuPort": 255,
       "myStationMac": "00:aa:00:00:00:03",
       "mySid": "fc00:0:3::"
     },
     {
       "name": "r4",
+      "domain": "c2",
       "deviceId": 3,
-      "grpcPort": 9562,
-      "thriftPort": 9093,
+      "grpcPort": 9662,
+      "thriftPort": 9193,
       "cpuPort": 255,
       "myStationMac": "00:aa:00:00:00:04",
       "mySid": "fc00:0:4::"
@@ -76,23 +80,13 @@
         "router": "r4",
         "port": 1
       }
-    },
-    {
-      "left": {
-        "router": "r4",
-        "port": 2
-      },
-      "right": {
-        "router": "r1",
-        "port": 2
-      }
     }
   ],
   "hosts": [
     {
       "name": "h1",
       "router": "r1",
-      "routerPort": 3,
+      "routerPort": 2,
       "mac": "00:04:00:00:00:00",
       "ip": "2001:1:1::10/64",
       "gateway": "2001:1:1::254/64"
@@ -116,7 +110,7 @@
     {
       "name": "h4",
       "router": "r4",
-      "routerPort": 3,
+      "routerPort": 2,
       "mac": "00:04:00:00:03:00",
       "ip": "2001:4:1::10/64",
       "gateway": "2001:4:1::254/64"

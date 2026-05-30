@@ -1,4 +1,7 @@
 org/onosproject/ngsdn/tutorial/L2BridgingComponent.class
+org/onosproject/ngsdn/tutorial/DomainBoundaryRoutingComponent$InternalConfigListener.class
+org/onosproject/ngsdn/tutorial/common/DomainBoundaryConfig.class
+org/onosproject/ngsdn/tutorial/DomainBoundaryRoutingComponent.class
 org/onosproject/ngsdn/tutorial/cli/Srv6ClearCommand.class
 org/onosproject/ngsdn/tutorial/Bmv2PortStatisticsProvider.class
 org/onosproject/ngsdn/tutorial/Srv6Component.class
@@ -6,10 +9,12 @@ org/onosproject/ngsdn/tutorial/pipeconf/PipeconfLoader.class
 org/onosproject/ngsdn/tutorial/Ipv6RoutingComponent$NextHop.class
 org/onosproject/ngsdn/tutorial/StaticNetcfgLinkProvider$InternalConfigListener.class
 org/onosproject/ngsdn/tutorial/StaticNetcfgLinkProvider$InternalDeviceListener.class
+org/onosproject/ngsdn/tutorial/DomainBoundaryRoutingComponent$InternalDeviceListener.class
 org/onosproject/ngsdn/tutorial/common/Utils.class
 org/onosproject/ngsdn/tutorial/Ipv6RoutingComponent$InternalDeviceListener.class
 org/onosproject/ngsdn/tutorial/pipeconf/PipelinerImpl$1.class
 org/onosproject/ngsdn/tutorial/StaticNetcfgLinkProvider$1.class
+org/onosproject/ngsdn/tutorial/common/DomainBoundaryConfig$BoundaryRoute.class
 org/onosproject/ngsdn/tutorial/NdpReplyComponent$1.class
 org/onosproject/ngsdn/tutorial/MainComponent$1.class
 org/onosproject/ngsdn/tutorial/Ipv6RoutingComponent$1.class
@@ -24,6 +29,8 @@ org/onosproject/ngsdn/tutorial/StaticNetcfgLinkProvider.class
 org/onosproject/ngsdn/tutorial/AppConstants.class
 org/onosproject/ngsdn/tutorial/L2BridgingComponent$InternalDeviceListener.class
 org/onosproject/ngsdn/tutorial/Ipv6RoutingComponent$InternalLinkListener.class
+org/onosproject/ngsdn/tutorial/DomainBoundaryRoutingComponent$1.class
+org/onosproject/ngsdn/tutorial/MainComponent$2.class
 org/onosproject/ngsdn/tutorial/NdpReplyComponent.class
 org/onosproject/ngsdn/tutorial/pipeconf/PipelinerImpl.class
 org/onosproject/ngsdn/tutorial/MainComponent.class

@@ -15,6 +15,9 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT_DIR = ROOT_DIR / "target" / "srv6-insert"
 DEFAULT_TOPOLOGY_GLOB = "topology-*.json"
+MIN_SRV6_ENTRIES = 2
+MAX_SRV6_ENTRIES = 6
+DEFAULT_DOMAIN = "default"
 
 
 class Srv6InsertError(RuntimeError):
@@ -37,6 +40,20 @@ def load_topology(path):
     if not isinstance(topology, dict):
         raise Srv6InsertError(f"Topology file {path} must contain a JSON object")
     return topology
+
+
+def load_domain_map(path):
+    try:
+        with path.open() as fp:
+            mapping = json.load(fp)
+    except OSError as exc:
+        raise Srv6InsertError(f"Cannot read domain map file {path}: {exc}") from exc
+    except json.JSONDecodeError as exc:
+        raise Srv6InsertError(f"Invalid domain map JSON in {path}: {exc}") from exc
+
+    if not isinstance(mapping, dict):
+        raise Srv6InsertError(f"Domain map file {path} must contain a JSON object")
+    return mapping
 
 
 def find_default_topology():
@@ -91,9 +108,9 @@ def resolve_policy(topology, ingress, path_nodes):
         raise Srv6InsertError(
             f"Ingress node {ingress!r} is not a router in this topology")
 
-    if len(path_nodes) < 2 or len(path_nodes) > 3:
+    if len(path_nodes) < MIN_SRV6_ENTRIES or len(path_nodes) > MAX_SRV6_ENTRIES:
         raise Srv6InsertError(
-            "SRv6 segment list must contain 2 or 3 entries after the ingress "
+            "SRv6 segment list must contain 2 to 6 entries after the ingress "
             f"router; got {len(path_nodes)}")
 
     sid_nodes = path_nodes[:-1]
@@ -121,8 +138,29 @@ def resolve_policy(topology, ingress, path_nodes):
 
     return {
         "device": f"device:bmv2:{ingress}",
+        "domain": routers[ingress].get("domain", DEFAULT_DOMAIN),
         "segments": segments,
     }
+
+
+def apply_domain_env(env, domain_map, domain):
+    if not domain_map:
+        return env
+    if domain not in domain_map:
+        raise Srv6InsertError(
+            f"Domain {domain!r} is not present in domain map; available: "
+            f"{', '.join(sorted(domain_map))}")
+    config = domain_map[domain]
+    if not isinstance(config, dict):
+        raise Srv6InsertError(f"Domain map entry for {domain!r} must be an object")
+
+    mapped_env = env.copy()
+    for key, value in config.items():
+        if not isinstance(value, str):
+            raise Srv6InsertError(
+                f"Domain map value {domain}.{key} must be a string")
+        mapped_env[key] = value
+    return mapped_env
 
 
 def command_log_path(output_dir, command):
@@ -194,6 +232,11 @@ def parse_args(argv):
         default=str(DEFAULT_OUTPUT_DIR),
         help=f"Directory for ONOS CLI logs. Default: {DEFAULT_OUTPUT_DIR}")
     parser.add_argument(
+        "--domain-map",
+        help=(
+            "JSON object mapping topology domain names to environment overrides, "
+            "for example ONOS_CONTAINER or ONOS_CLI_CMD"))
+    parser.add_argument(
         "--clear",
         action="store_true",
         help="Clear existing SRv6 transit rules on the ingress device before inserting")
@@ -205,22 +248,28 @@ def parse_args(argv):
         "nodes",
         nargs="+",
         help=(
-            "Ingress router followed by 2 or 3 SRv6 entries. "
+            "Ingress router followed by 2 to 6 SRv6 entries. "
             "Middle entries are router names; the final entry is a host name or IPv6 address."))
     return parser.parse_args(argv)
 
 
 def main(argv=None):
     args = parse_args(argv or sys.argv[1:])
-    if len(args.nodes) < 3 or len(args.nodes) > 4:
+    if len(args.nodes) < MIN_SRV6_ENTRIES + 1 or len(args.nodes) > MAX_SRV6_ENTRIES + 1:
         raise Srv6InsertError(
-            "Expected ingress router plus 2 or 3 SRv6 entries, for example: "
-            "tools/insert_srv6.py r1 r2 r4 h3")
+            "Expected ingress router plus 2 to 6 SRv6 entries, for example: "
+            "tools/insert_srv6.py r1 r2 r3 r4 r5 r6 h7")
 
     topology_path = Path(args.topology_file) if args.topology_file else find_default_topology()
     if not topology_path.is_absolute():
         topology_path = (ROOT_DIR / topology_path).resolve()
     topology = load_topology(topology_path)
+    domain_map = None
+    if args.domain_map:
+        domain_map_path = Path(args.domain_map)
+        if not domain_map_path.is_absolute():
+            domain_map_path = (ROOT_DIR / domain_map_path).resolve()
+        domain_map = load_domain_map(domain_map_path)
 
     policy = resolve_policy(topology, args.nodes[0], args.nodes[1:])
     insert_command = "srv6-insert {} {}".format(
@@ -233,12 +282,18 @@ def main(argv=None):
 
     if args.dry_run:
         log(f"topology: {topology_path}")
+        if domain_map:
+            log(f"domain: {policy['domain']}")
         if args.clear:
-            onos_cli(clear_command, output_dir, os.environ.copy(), dry_run=True)
-        onos_cli(insert_command, output_dir, os.environ.copy(), dry_run=True)
+            onos_cli(clear_command, output_dir,
+                     apply_domain_env(os.environ.copy(), domain_map, policy["domain"]),
+                     dry_run=True)
+        onos_cli(insert_command, output_dir,
+                 apply_domain_env(os.environ.copy(), domain_map, policy["domain"]),
+                 dry_run=True)
         return 0
 
-    env = os.environ.copy()
+    env = apply_domain_env(os.environ.copy(), domain_map, policy["domain"])
     if args.clear:
         onos_cli(clear_command, output_dir, env, dry_run=False)
     onos_cli(insert_command, output_dir, env, dry_run=False)

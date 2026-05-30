@@ -89,13 +89,16 @@ segment...   中间 SRv6 SID 节点，必须是 router 名，例如 r2、r4。
 destination  最终目的，可以是 host 名，例如 h3；也可以直接写 IPv6 地址。
 ```
 
-当前 P4 程序和 Java 控制面只支持 2 或 3 个 SRv6 entry。因此 `ingress`
-之后必须有 2 或 3 个参数：
+当前 P4 程序和 Java 控制面支持 2 到 6 个 SRv6 entry。因此 `ingress`
+之后必须有 2 到 6 个参数：
 
 ```text
 r1 r2 h3        合法，对应 2 个 entry：r2 SID + h3 IP
 r1 r2 r4 h3     合法，对应 3 个 entry：r2 SID + r4 SID + h3 IP
-r1 r2 r3 r4 h5  不合法，entry 数量超过 3
+r1 r2 r3 r4 r5 r6 h7
+                 合法，对应 6 个 entry：5 个 router SID + h7 IP
+r1 r2 r3 r4 r5 r6 r7 h8
+                 不合法，entry 数量超过 6
 ```
 
 ## 拓扑文件选择
@@ -166,6 +169,62 @@ ONOS_CLI_CMD="/opt/onos/apache-karaf-4.2.9/bin/client -h 127.0.0.1 -a 8101 -u on
   ./tools/insert_srv6.py r1 r2 r4 h3
 ```
 
+## 多 ONOS 域选择
+
+两域或多域环境下，`tools/insert_srv6.py` 可以根据入口 router 的
+`domain` 自动选择目标 ONOS。通过 `--domain-map` 传入 JSON 文件，文件内容是
+`domain -> 环境变量覆盖`。
+
+示例：
+
+```bash
+cat > target/2domain-runtime/domains.json <<'EOF'
+{
+  "c1": {
+    "ONOS_CONTAINER": "onos-c1"
+  },
+  "c2": {
+    "ONOS_CONTAINER": "onos-c2"
+  }
+}
+EOF
+```
+
+下发从 c1 入口 `r1` 到 c2 主机 `h4` 的策略：
+
+```bash
+./tools/insert_srv6.py \
+  --topology-file target/env/topology-linear-4r-2domain-test.json \
+  --domain-map target/2domain-runtime/domains.json \
+  --clear r1 r2 r3 h4
+```
+
+脚本会读取 `r1` 的 `domain=c1`，然后用 `ONOS_CONTAINER=onos-c1` 执行：
+
+```text
+srv6-insert device:bmv2:r1 fc00:0:2:: fc00:0:3:: 2001:4:1::10
+```
+
+反向策略从 c2 入口 `r4` 下发到 `onos-c2`：
+
+```bash
+./tools/insert_srv6.py \
+  --topology-file target/env/topology-linear-4r-2domain-test.json \
+  --domain-map target/2domain-runtime/domains.json \
+  --clear r4 r3 r2 h1
+```
+
+`domain-map` 每个域的值可以设置任意字符串环境变量。常用字段：
+
+```text
+ONOS_CONTAINER  目标 ONOS Docker 容器名。
+ONOS_CLI_CMD    自定义 Karaf CLI 命令前缀。
+DOCKER_CMD      自定义 Docker 命令。
+```
+
+如果不传 `--domain-map`，脚本保持原行为，继续使用当前 shell 中的
+`ONOS_CONTAINER` 或 `ONOS_CLI_CMD`。
+
 ## 输出文件
 
 实际下发时，ONOS CLI 输出会保存到：
@@ -223,7 +282,7 @@ ERROR: Segment node 'h2' is not a router in this topology
 SRv6 entry 数量不合法：
 
 ```text
-ERROR: Expected ingress router plus 2 or 3 SRv6 entries
+ERROR: Expected ingress router plus 2 to 6 SRv6 entries
 ```
 
 找不到默认拓扑文件：
