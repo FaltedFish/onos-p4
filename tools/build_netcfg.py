@@ -51,10 +51,6 @@ def host_in_domain(host, routers, domain):
     return in_domain(routers[host["router"]], domain)
 
 
-def host_prefix(host):
-    return f"{strip_prefix(host['ip'])}/128"
-
-
 def sid_prefix(router):
     return f"{strip_prefix(router['mySid'])}/128"
 
@@ -182,7 +178,7 @@ def build_netcfg(topology, args):
 
 
 def build_boundary_routes(topology, domain):
-    routers, hosts_by_router = topology_indexes(topology)
+    routers, _ = topology_indexes(topology)
     routes = []
 
     for link in topology["links"]:
@@ -211,22 +207,19 @@ def build_boundary_routes(topology, domain):
             "nextHopSid": remote_router["mySid"],
             "remoteDomain": router_domain(remote_router),
             "remoteRouter": remote_router["name"],
-            "prefixes": sorted(remote_prefixes(topology, router_domain(remote_router))),
+            "prefixes": sorted(remote_sid_prefixes(topology, router_domain(remote_router))),
         }
         routes.append(route)
 
     return routes
 
 
-def remote_prefixes(topology, domain):
+def remote_sid_prefixes(topology, domain):
     prefixes = set()
-    _, hosts_by_router = topology_indexes(topology)
     for router in topology["routers"]:
         if router_domain(router) != domain:
             continue
         prefixes.add(sid_prefix(router))
-        for host in hosts_by_router.get(router["name"], []):
-            prefixes.add(host_prefix(host))
     return prefixes
 
 

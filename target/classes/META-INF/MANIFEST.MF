@@ -1,5 +1,5 @@
 Manifest-Version: 1.0
-Bnd-LastModified: 1780154490900
+Bnd-LastModified: 1781015185332
 Build-Jdk: 11.0.27
 Built-By: p4
 Bundle-Description: NG-SDN multi-router app for BMv2 simple_switch_grpc

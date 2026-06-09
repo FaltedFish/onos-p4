@@ -49,7 +49,7 @@ srv6-insert device:bmv2:r1 fc00:0:2:: fc00:0:4:: 2001:3:1::10
 预期输出类似：
 
 ```text
-topology: /home/p4/onos-ngsdn-app/target/env/topology-ring-4r-1h.json
+topology: /home/p4/onos-ngsdn-app/topologies/generated/topology-ring-4r-1h.json
 srv6-insert device:bmv2:r1 fc00:0:2:: fc00:0:4:: 2001:3:1::10
 ```
 
@@ -73,7 +73,7 @@ srv6-insert device:bmv2:r1 fc00:0:2:: fc00:0:4:: 2001:3:1::10
 ./tools/insert_srv6.py [选项] ingress segment... destination
 ```
 
-示例：
+两域示例：
 
 ```bash
 ./tools/insert_srv6.py r1 r2 h3
@@ -113,7 +113,7 @@ r1 r2 r3 r4 r5 r6 r7 h8
 
 ```bash
 ./tools/insert_srv6.py \
-  --topology-file target/env/topology-ring-4r-1h.json \
+  --topology-file topologies/generated/topology-ring-4r-1h.json \
   r1 r2 r4 h3
 ```
 
@@ -194,7 +194,7 @@ EOF
 
 ```bash
 ./tools/insert_srv6.py \
-  --topology-file target/env/topology-linear-4r-2domain-test.json \
+  --topology-file topologies/generated/topology-linear-4r-2domain-test.json \
   --domain-map target/2domain-runtime/domains.json \
   --clear r1 r2 r3 h4
 ```
@@ -209,7 +209,7 @@ srv6-insert device:bmv2:r1 fc00:0:2:: fc00:0:3:: 2001:4:1::10
 
 ```bash
 ./tools/insert_srv6.py \
-  --topology-file target/env/topology-linear-4r-2domain-test.json \
+  --topology-file topologies/generated/topology-linear-4r-2domain-test.json \
   --domain-map target/2domain-runtime/domains.json \
   --clear r4 r3 r2 h1
 ```
@@ -224,6 +224,23 @@ DOCKER_CMD      自定义 Docker 命令。
 
 如果不传 `--domain-map`，脚本保持原行为，继续使用当前 shell 中的
 `ONOS_CONTAINER` 或 `ONOS_CLI_CMD`。
+
+跨中间域时，segment list 必须显式经过中间域 router SID。`create_onos.sh`
+在带 `DOMAIN` 成功启动后会自动更新 runtime domain map，默认路径为
+`topologies/generated/domain-map-<topology-name>.json`。以
+`topologies/linear-6r-3domain.json` 为例，`c1` 和 `c3` 不直接相邻，
+`h1 -> h6` 可以下发到入口域 `c1`：
+
+```bash
+./tools/insert_srv6.py \
+  --topology-file topologies/generated/topology-linear-6r-3domain-test.json \
+  --domain-map topologies/generated/domain-map-linear-6r-3domain-test.json \
+  --clear r1 r2 r3 r4 r5 h6
+```
+
+这个命令仍只把 `srv6_transit` 规则安装到入口 router `r1` 所属的
+`onos-c1`。中间域不需要额外安装 transit insert 规则，但需要各自的
+netcfg 中包含直接邻域 SID 路由。
 
 ## 输出文件
 

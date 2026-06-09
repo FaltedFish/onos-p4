@@ -63,7 +63,7 @@ import java.util.Optional;
 import static org.onosproject.ngsdn.tutorial.AppConstants.INITIAL_SETUP_DELAY;
 
 /**
- * Installs static routes needed at cross-domain router boundaries.
+ * Installs static SID routes needed at cross-domain router boundaries.
  */
 @Component(
         immediate = true,
@@ -141,7 +141,7 @@ public class DomainBoundaryRoutingComponent {
         final MacAddress nextHopMac = route.nextHopMac();
         final PortNumber outPort = route.port();
 
-        log.info("Adding cross-domain L2 next hop on {} via {} port {}",
+        log.info("Adding cross-domain neighbor L2 next hop on {} via {} port {}",
                 deviceId, nextHopMac, outPort);
         flowRuleService.applyFlowRules(createL2NextHopRule(deviceId, nextHopMac, outPort));
 
@@ -153,7 +153,7 @@ public class DomainBoundaryRoutingComponent {
                 .map(prefix -> createRoutingRule(deviceId, prefix, groupId))
                 .collect(java.util.stream.Collectors.toList());
 
-        log.info("Adding {} cross-domain route(s) on {} via {}",
+        log.info("Adding {} cross-domain neighbor SID route(s) on {} via {}",
                 flowRules.size(), deviceId, nextHopMac);
         insertInOrder(group, flowRules);
     }

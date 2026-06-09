@@ -45,6 +45,7 @@ TOPOLOGY="${TOPOLOGY:-linear}"
 DOMAIN="${DOMAIN:-}"
 TOPOLOGY_CONFIG="${TOPOLOGY_CONFIG:-}"
 TOPOLOGY_FILE="${TOPOLOGY_FILE:-}"
+TOPOLOGY_OUTPUT_DIR="${TOPOLOGY_OUTPUT_DIR:-topologies/generated}"
 TOPOLOGY_FILE_EXPLICIT=0
 LINK_BW="${LINK_BW:-}"
 LINK_DELAY="${LINK_DELAY:-}"
@@ -71,9 +72,10 @@ else
   if [[ -n "${TOPOLOGY_CONFIG}" ]]; then
     TOPOLOGY_NAME="$(basename "${TOPOLOGY_CONFIG}")"
     TOPOLOGY_NAME="${TOPOLOGY_NAME%.*}"
-    TOPOLOGY_FILE="target/env/topology-${TOPOLOGY_NAME}.json"
+    TOPOLOGY_FILE="${TOPOLOGY_OUTPUT_DIR}/topology-${TOPOLOGY_NAME}.json"
   else
-    TOPOLOGY_FILE="target/env/topology-${TOPOLOGY}-${ROUTERS}r-${HOSTS_PER_ROUTER}h.json"
+    TOPOLOGY_NAME="${TOPOLOGY}-${ROUTERS}r-${HOSTS_PER_ROUTER}h"
+    TOPOLOGY_FILE="${TOPOLOGY_OUTPUT_DIR}/topology-${TOPOLOGY}-${ROUTERS}r-${HOSTS_PER_ROUTER}h.json"
   fi
 fi
 if [[ -n "${NETCFG_FILE:-}" ]]; then
@@ -91,6 +93,7 @@ else
     NETCFG_FILE="target/env/netcfg-${TOPOLOGY}-${ROUTERS}r-${HOSTS_PER_ROUTER}h.json"
   fi
 fi
+DOMAIN_MAP_FILE="${DOMAIN_MAP_FILE:-${TOPOLOGY_OUTPUT_DIR}/domain-map-${TOPOLOGY_NAME}.json}"
 
 BUILD_APP="${BUILD_APP:-1}"
 BUILD_P4="${BUILD_P4:-1}"
@@ -288,6 +291,57 @@ onos_copy_to_container() {
   "${DOCKER[@]}" cp "${src}" "${ONOS_CONTAINER}:${dst}"
 }
 
+update_domain_runtime_map() {
+  if [[ -z "${DOMAIN}" ]]; then
+    return 0
+  fi
+
+  echo "Updating domain runtime map ${DOMAIN_MAP_FILE}..."
+  mkdir -p "$(dirname "${DOMAIN_MAP_FILE}")"
+  DOMAIN_MAP_FILE="${DOMAIN_MAP_FILE}" \
+  DOMAIN="${DOMAIN}" \
+  ONOS_CONTAINER="${ONOS_CONTAINER}" \
+  ONOS_REST_PORT="${ONOS_REST_PORT}" \
+  ONOS_URL="${ONOS_URL}" \
+  DOCKER_CMD="${DOCKER_CMD}" \
+  ONOS_CLI_CMD="${ONOS_CLI_CMD:-}" \
+    python3 - <<'PY'
+import json
+import os
+from pathlib import Path
+
+path = Path(os.environ["DOMAIN_MAP_FILE"])
+domain = os.environ["DOMAIN"]
+
+if path.exists():
+    with path.open() as fp:
+        data = json.load(fp)
+    if not isinstance(data, dict):
+        raise SystemExit(f"{path} must contain a JSON object")
+else:
+    data = {}
+
+entry = {
+    "ONOS_CONTAINER": os.environ["ONOS_CONTAINER"],
+    "ONOS_REST_PORT": os.environ["ONOS_REST_PORT"],
+    "ONOS_URL": os.environ["ONOS_URL"],
+}
+
+docker_cmd = os.environ.get("DOCKER_CMD")
+if docker_cmd and docker_cmd != "docker":
+    entry["DOCKER_CMD"] = docker_cmd
+
+onos_cli_cmd = os.environ.get("ONOS_CLI_CMD")
+if onos_cli_cmd:
+    entry["ONOS_CLI_CMD"] = onos_cli_cmd
+
+data[domain] = entry
+tmp = path.with_name(path.name + ".tmp")
+tmp.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
+tmp.replace(path)
+PY
+}
+
 onos_print_diagnostics() {
   echo "Container status:" >&2
   "${DOCKER[@]}" ps --filter "name=^/${ONOS_CONTAINER}$" --format '  {{.Names}} {{.Status}} {{.Ports}}' >&2 || true
@@ -470,6 +524,10 @@ fi
 if [[ "${TOPOLOGY_FILE_EXPLICIT}" == "1" ]]; then
   if [[ ! -f "${TOPOLOGY_FILE}" ]]; then
     echo "Topology file not found: ${TOPOLOGY_FILE}" >&2
+    if [[ "${TOPOLOGY_FILE}" == target/* ]]; then
+      echo "Files under target/ can be removed by mvn clean during create_onos.sh." >&2
+      echo "Use topologies/generated/ for reusable topology files." >&2
+    fi
     exit 1
   fi
 else
@@ -533,12 +591,15 @@ else
     -d @"${NETCFG_FILE}" >/dev/null
 fi
 
+update_domain_runtime_map
+
 echo
 echo "ONOS environment is ready."
 echo "  ONOS URL:       ${ONOS_URL}"
 echo "  ONOS container: ${ONOS_CONTAINER}"
 if [[ -n "${DOMAIN}" ]]; then
   echo "  domain:         ${DOMAIN}"
+  echo "  domain map:     ${DOMAIN_MAP_FILE}"
 fi
 echo "  REST mode:      ${ONOS_REST_MODE}"
 echo "  Docker network: ${ONOS_DOCKER_NETWORK}"

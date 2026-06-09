@@ -271,7 +271,7 @@ python3 -m json.tool target/srv6-verify/onos-after-srv6-insert-devices.json
 如果需要重新人工观察 ONOS Web Topology，可以手动启动匹配拓扑：
 
 ```bash
-TOPOLOGY_FILE=target/env/topology-ring-4r-1h.json ./env/create_mininet.sh
+TOPOLOGY_FILE=topologies/generated/topology-ring-4r-1h.json ./env/create_mininet.sh
 ```
 
 ## 常见失败排查

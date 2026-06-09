@@ -1,7 +1,8 @@
 # ONOS 和 Mininet 环境入口脚本使用说明
 
-本文说明如何使用 `./env/create_onos.sh` 和 `./env/create_mininet.sh`
-准备本项目的 ONOS + BMv2/Mininet 端到端实验环境。
+本文说明如何使用 `./env/create_onos.sh`、`./env/create_mininet.sh`
+和 `./env/clean_environment.sh` 管理本项目的 ONOS + BMv2/Mininet
+端到端实验环境。
 
 ## 推荐流程
 
@@ -118,6 +119,42 @@ PCAP_DUMP=1 ./env/create_mininet.sh
 GRPC_EXE=/usr/local/bin/simple_switch_grpc ./env/create_mininet.sh
 ```
 
+## clean_environment.sh
+
+`./env/clean_environment.sh` 负责一键清空当前实验环境。
+
+主要动作：
+
+- 停止残留的 `multi_router_p4runtime.py` 和 `simple_switch_grpc` 进程。
+- 执行 `sudo mn -c` 清理 Mininet 状态。
+- 删除本项目 ONOS Docker 容器，默认包括 `onos`、`onos-*` 以及连接到
+  `onos-ngsdn` 网络的容器。
+- 删除本项目 ONOS Docker 网络 `onos-ngsdn`。
+
+常用示例：
+
+```bash
+./env/clean_environment.sh
+```
+
+先打印将执行的命令，不实际清理：
+
+```bash
+DRY_RUN=1 ./env/clean_environment.sh
+```
+
+只清理 Mininet/BMv2，不删除 ONOS Docker：
+
+```bash
+CLEAN_ONOS_DOCKER=0 ./env/clean_environment.sh
+```
+
+只清理指定 ONOS 容器：
+
+```bash
+ONOS_CONTAINERS="onos-c1 onos-c2" CLEAN_ONOS_NETWORK=0 ./env/clean_environment.sh
+```
+
 ## 拓扑参数
 
 两个脚本共享以下拓扑参数。只要修改其中一个，ONOS 和 Mininet 两边都要使用
@@ -129,6 +166,7 @@ HOSTS_PER_ROUTER     每台路由器挂载主机数，默认 1
 TOPOLOGY             linear、ring 或 mesh，默认 linear
 TOPOLOGY_CONFIG      自定义拓扑输入 JSON
 TOPOLOGY_FILE        已展开的标准拓扑 JSON
+TOPOLOGY_OUTPUT_DIR  脚本自动生成拓扑文件的目录，默认 topologies/generated
 GRPC_BASE            BMv2 gRPC 起始端口，默认 9559
 THRIFT_PORT_BASE     BMv2 thrift 起始端口，默认 9090
 DEVICE_ID_BASE       device ID 起始值，默认 0
@@ -158,7 +196,7 @@ ROUTERS=4 HOSTS_PER_ROUTER=2 TOPOLOGY=ring LINK_BW=10 LINK_DELAY=5ms \
 命令启动 Mininet，例如：
 
 ```bash
-TOPOLOGY_FILE=target/env/topology-ring-4r-2h.json LINK_BW=10 LINK_DELAY=5ms \
+TOPOLOGY_FILE=topologies/generated/topology-ring-4r-2h.json LINK_BW=10 LINK_DELAY=5ms \
   ./env/create_mininet.sh
 ```
 
@@ -174,26 +212,31 @@ TOPOLOGY_CONFIG=topologies/custom-lab.json ./env/create_mininet.sh
 脚本会把配置展开为标准拓扑文件：
 
 ```text
-target/env/topology-custom-lab.json
+topologies/generated/topology-custom-lab.json
 ```
 
 如果已经提前生成标准拓扑文件，可以让两个脚本直接复用：
 
 ```bash
-TOPOLOGY_FILE=target/env/custom-lab-topology.json ./env/create_onos.sh
-TOPOLOGY_FILE=target/env/custom-lab-topology.json ./env/create_mininet.sh
+TOPOLOGY_FILE=topologies/generated/custom-lab-topology.json ./env/create_onos.sh
+TOPOLOGY_FILE=topologies/generated/custom-lab-topology.json ./env/create_mininet.sh
 ```
+
+`topologies/generated/` 不会被 `mvn clean` 删除，适合保存手工展开后要跨多个
+脚本复用的拓扑文件。不要把这类文件放在 `target/env/` 下，否则
+`create_onos.sh` 默认构建 app 时可能会通过 `mvn clean` 删除它。
 
 显式设置 `TOPOLOGY_FILE` 时，脚本只加载该文件，不会覆盖它。
 
-## 两域独立 ONOS 环境
+## 多域独立 ONOS 环境
 
 本项目支持把同一个 Mininet/BMv2 数据面拆给多个独立 ONOS 控制器域管理。
 拓扑 JSON 中 router 可以配置 `domain` 字段，未配置时默认为 `default`。
 
-最小可运行示例见 `docs/multi_controller_minimal_example.md`。
+最小可运行示例见 `docs/multi_controller_minimal_example.md`。跨交换机、跨控制器域
+转发机制见 `docs/multi_controller_cross_switch_forwarding.md`。
 
-示例拓扑：
+两域示例拓扑：
 
 ```text
 topologies/linear-4r-2domain.json
@@ -202,12 +245,22 @@ c1: r1, r2
 c2: r3, r4
 ```
 
+三域跨中间域示例拓扑：
+
+```text
+topologies/linear-6r-3domain.json
+
+c1: r1, r2
+c2: r3, r4
+c3: r5, r6
+```
+
 先展开拓扑：
 
 ```bash
 ./tools/build_topology.py \
   --config topologies/linear-4r-2domain.json \
-  --output target/env/topology-linear-4r-2domain.json
+  --output topologies/generated/topology-linear-4r-2domain.json
 ```
 
 如果本机已有默认 `onos` 容器，且它仍加载默认 `9559` 起始端口的 netcfg，
@@ -218,7 +271,7 @@ c2: r3, r4
   --config topologies/linear-4r-2domain.json \
   --grpc-base 9659 \
   --thrift-base 9190 \
-  --output target/env/topology-linear-4r-2domain-test.json
+  --output topologies/generated/topology-linear-4r-2domain-test.json
 ```
 
 分别启动两个 ONOS 域：
@@ -228,26 +281,27 @@ DOMAIN=c1 \
 ONOS_CONTAINER=onos-c1 \
 ONOS_REST_PORT=8281 \
 RECREATE_ONOS=1 \
-TOPOLOGY_FILE=target/env/topology-linear-4r-2domain-test.json \
+TOPOLOGY_FILE=topologies/generated/topology-linear-4r-2domain-test.json \
 ./env/create_onos.sh
 
 DOMAIN=c2 \
 ONOS_CONTAINER=onos-c2 \
 ONOS_REST_PORT=8381 \
 RECREATE_ONOS=1 \
-TOPOLOGY_FILE=target/env/topology-linear-4r-2domain-test.json \
+TOPOLOGY_FILE=topologies/generated/topology-linear-4r-2domain-test.json \
 ./env/create_onos.sh
 ```
 
 `DOMAIN` 会让 `build_netcfg.py --domain` 只生成本域 router、host 和域内 link。
 跨域链路会生成应用配置 `domainBoundaryConfig`，由
-`DomainBoundaryRoutingComponent` 自动在边界 router 下发外域 host/SID `/128`
-可达规则。
+`DomainBoundaryRoutingComponent` 自动在边界 router 下发直接邻域 router SID
+`/128` 可达规则。非相邻域信息不会自动传播；跨中间域通信需要在入口 router
+安装显式 SRv6 policy。
 
 启动同一份 Mininet 拓扑：
 
 ```bash
-TOPOLOGY_FILE=target/env/topology-linear-4r-2domain-test.json \
+TOPOLOGY_FILE=topologies/generated/topology-linear-4r-2domain-test.json \
 ./env/create_mininet.sh
 ```
 
@@ -267,6 +321,36 @@ curl -sS --user onos:rocks \
 onos-c1: device:bmv2:r1, device:bmv2:r2
 onos-c2: device:bmv2:r3, device:bmv2:r4
 ```
+
+三域实验的启动方式相同，只是为每个域各运行一次 `create_onos.sh`。例如：
+
+```bash
+./tools/build_topology.py \
+  --config topologies/linear-6r-3domain.json \
+  --grpc-base 9759 \
+  --thrift-base 9290 \
+  --output topologies/generated/topology-linear-6r-3domain-test.json
+
+DOMAIN=c1 ONOS_CONTAINER=onos-c1 ONOS_REST_PORT=8281 RECREATE_ONOS=1 \
+  TOPOLOGY_FILE=topologies/generated/topology-linear-6r-3domain-test.json \
+  ./env/create_onos.sh
+
+DOMAIN=c2 ONOS_CONTAINER=onos-c2 ONOS_REST_PORT=8381 RECREATE_ONOS=1 \
+  TOPOLOGY_FILE=topologies/generated/topology-linear-6r-3domain-test.json \
+  ./env/create_onos.sh
+
+DOMAIN=c3 ONOS_CONTAINER=onos-c3 ONOS_REST_PORT=8481 RECREATE_ONOS=1 \
+  TOPOLOGY_FILE=topologies/generated/topology-linear-6r-3domain-test.json \
+  ./env/create_onos.sh
+
+TOPOLOGY_FILE=topologies/generated/topology-linear-6r-3domain-test.json \
+  ./env/create_mininet.sh
+```
+
+在这个拓扑中，`c1` 只生成到直接邻域 `c2` 的边界规则，`c3` 只生成到
+直接邻域 `c2` 的边界规则，`c2` 分别生成到 `c1` 和 `c3` 的边界规则。
+从 `h1` 到 `h6` 的跨中间域转发需要类似
+`./tools/insert_srv6.py --clear r1 r2 r3 r4 r5 h6` 的 SRv6 policy。
 
 ## create_onos.sh 常用变量
 
@@ -291,6 +375,8 @@ ONOS_DOCKER_SUBNET       Docker 网络网段，默认 172.20.0.0/16
 ONOS_DOCKER_GATEWAY      Docker 网络网关，默认 172.20.0.1
 NETCFG_IP                ONOS 访问 BMv2 gRPC 的地址
 NETCFG_FILE              生成的 netcfg 文件路径
+TOPOLOGY_OUTPUT_DIR      自动生成 topology 和 domain map 的目录，默认 topologies/generated
+DOMAIN_MAP_FILE          多域运行时 domain map 文件路径
 BUILD_APP                是否构建 ONOS app，默认 1
 BUILD_P4                 构建 app 前是否编译 P4，默认 1
 RECREATE_ONOS            是否重建 ONOS 容器，默认 0
@@ -317,13 +403,30 @@ MININET_BATCH_RESULT        batch 结果输出路径
 MININET_KEEP_RUNNING_AFTER_BATCH batch 执行后是否保持 Mininet 运行
 ```
 
+## clean_environment.sh 常用变量
+
+```text
+ONOS_CONTAINER           默认 ONOS Docker 容器名，默认 onos
+ONOS_CONTAINERS          要删除的容器名列表，支持空格或逗号分隔
+ONOS_DOCKER_NETWORK      要删除的 ONOS Docker 网络，默认 onos-ngsdn
+DOCKER_CMD               Docker 命令，默认 docker
+SUDO_CMD                 sudo 命令，默认 sudo
+CLEAN_MININET            是否执行 Mininet/BMv2 清理，默认 1
+CLEAN_STALE_P4           是否停止残留 P4Runtime/Mininet 进程，默认 1
+CLEAN_ONOS_DOCKER        是否删除 ONOS Docker 容器，默认 1
+CLEAN_ONOS_NETWORK       是否删除 ONOS Docker 网络，默认 1
+REMOVE_ONOS_VOLUMES      删除容器时是否附带匿名 volume，默认 0
+DRY_RUN                  只打印命令不执行，默认 0
+```
+
 ## 生成文件
 
 常见输出文件：
 
 ```text
-target/env/topology-*.json          标准拓扑文件
+topologies/generated/topology-*.json          标准拓扑文件
 target/env/netcfg-*.json            推送到 ONOS 的 netcfg
+topologies/generated/domain-map-*.json 多域运行时 domain map
 target/ngsdn-multirouter-*.oar      ONOS app 安装包
 p4build/ngsdn_tutorial/*            BMv2 JSON 等 P4 编译产物
 p4build/ngsdn_tutorial.p4info.pb.txt P4Info

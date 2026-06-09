@@ -18,6 +18,7 @@ HOSTS_PER_ROUTER="${HOSTS_PER_ROUTER:-1}"
 TOPOLOGY="${TOPOLOGY:-linear}"
 TOPOLOGY_CONFIG="${TOPOLOGY_CONFIG:-}"
 TOPOLOGY_FILE="${TOPOLOGY_FILE:-}"
+TOPOLOGY_OUTPUT_DIR="${TOPOLOGY_OUTPUT_DIR:-topologies/generated}"
 TOPOLOGY_FILE_EXPLICIT=0
 LINK_BW="${LINK_BW:-}"
 LINK_DELAY="${LINK_DELAY:-}"
@@ -66,15 +67,19 @@ else
   if [[ -n "${TOPOLOGY_CONFIG}" ]]; then
     TOPOLOGY_NAME="$(basename "${TOPOLOGY_CONFIG}")"
     TOPOLOGY_NAME="${TOPOLOGY_NAME%.*}"
-    TOPOLOGY_FILE="target/env/topology-${TOPOLOGY_NAME}.json"
+    TOPOLOGY_FILE="${TOPOLOGY_OUTPUT_DIR}/topology-${TOPOLOGY_NAME}.json"
   else
-    TOPOLOGY_FILE="target/env/topology-${TOPOLOGY}-${ROUTERS}r-${HOSTS_PER_ROUTER}h.json"
+    TOPOLOGY_FILE="${TOPOLOGY_OUTPUT_DIR}/topology-${TOPOLOGY}-${ROUTERS}r-${HOSTS_PER_ROUTER}h.json"
   fi
 fi
 
 if [[ "${TOPOLOGY_FILE_EXPLICIT}" == "1" ]]; then
   if [[ ! -f "${TOPOLOGY_FILE}" ]]; then
     echo "Topology file not found: ${TOPOLOGY_FILE}" >&2
+    if [[ "${TOPOLOGY_FILE}" == target/* ]]; then
+      echo "Files under target/ can be removed by mvn clean during create_onos.sh." >&2
+      echo "Use topologies/generated/ for reusable topology files." >&2
+    fi
     exit 1
   fi
 else

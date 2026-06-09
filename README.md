@@ -56,6 +56,7 @@ mininet/multi_router_p4runtime.py    Mininet 多路由器 P4Runtime 拓扑脚本
 mininet/p4_mininet.py                Mininet P4 host/switch 辅助类
 env/create_onos.sh                   创建/配置 ONOS 环境入口
 env/create_mininet.sh                清理并启动 Mininet 环境入口
+env/clean_environment.sh             一键清空 ONOS Docker 和 Mininet/BMv2 状态
 build.sh                             ONOS app 构建脚本
 target/*.oar                         ONOS app 安装包
 ```
@@ -91,6 +92,17 @@ cd /home/p4/onos-ngsdn-app
 - 生成或加载标准拓扑文件。
 - 先运行 `sudo mn -c` 清理上一次 Mininet 残留。
 - 启动本项目内的 `mininet/multi_router_p4runtime.py` 并进入 Mininet CLI。
+
+需要彻底清空当前实验环境时：
+
+```bash
+./env/clean_environment.sh
+```
+
+该脚本会停止残留的 `multi_router_p4runtime.py` 和 `simple_switch_grpc`
+进程，执行 `sudo mn -c`，删除本项目 ONOS Docker 容器以及
+`onos-ngsdn` Docker 网络。多控制器实验中，如果容器名为 `onos-c1`、
+`onos-c2` 这类 `onos-*` 名称，也会一并清理。
 
 四台路由器、每台两个主机、环形拓扑示例：
 
@@ -162,11 +174,19 @@ hosts[].gateway
 ```bash
 ./tools/build_topology.py \
   --config topologies/custom-lab.json \
-  --output target/env/custom-lab-topology.json
+  --output topologies/generated/custom-lab-topology.json
 
-TOPOLOGY_FILE=target/env/custom-lab-topology.json ./env/create_onos.sh
-TOPOLOGY_FILE=target/env/custom-lab-topology.json ./env/create_mininet.sh
+TOPOLOGY_FILE=topologies/generated/custom-lab-topology.json ./env/create_onos.sh
+TOPOLOGY_FILE=topologies/generated/custom-lab-topology.json ./env/create_mininet.sh
 ```
+
+`topologies/generated/` 不会被 `mvn clean` 删除，适合保存手工展开后要被
+ONOS 和 Mininet 共同复用的拓扑文件。
+
+多控制器域通过 `routers[].domain` 拆分。`DOMAIN=<name> ./env/create_onos.sh`
+只会为该域生成 netcfg；跨域边界只安装直接邻域 router SID 路由，跨中间域通信
+需要入口 router 上的 SRv6 policy。三域示例见
+`topologies/linear-6r-3domain.json` 和 [docs/create_environment.md](docs/create_environment.md)。
 
 常用参数：
 
@@ -176,6 +196,7 @@ HOSTS_PER_ROUTER     每台路由器挂载主机数，默认 1
 TOPOLOGY             linear、ring 或 mesh，默认 linear
 TOPOLOGY_CONFIG      自定义拓扑输入 JSON，脚本会展开成标准拓扑文件
 TOPOLOGY_FILE        已展开的标准拓扑 JSON；显式设置时脚本直接加载，不覆盖
+TOPOLOGY_OUTPUT_DIR  脚本自动生成拓扑文件的目录，默认 topologies/generated
 LINK_BW              Mininet 链路带宽，单位 Mbit/s，例如 10
 LINK_DELAY           Mininet 链路延迟，例如 5ms、100us 或 1s
 NETCFG_IP            ONOS 访问 BMv2 gRPC 的地址，Docker ONOS 默认 172.20.0.1
@@ -190,6 +211,8 @@ RECREATE_ON_PORT_CONFLICT 设为 1 时检测到 9559 端口冲突会自动重建
 BUILD_APP            设为 0 时跳过 ONOS app 构建
 BUILD_P4             create_onos.sh 构建 app 前是否先构建 P4，默认 1
 CLEAN_MININET        create_mininet.sh 是否执行 sudo mn -c，默认 1
+SUDO_CMD             sudo 命令，默认 sudo
+DOCKER_CMD           Docker 命令，默认 docker
 ```
 
 如果 ONOS 不是运行在 Docker bridge 网络中，例如 ONOS 直接运行在宿主机，
@@ -355,11 +378,11 @@ cd /home/p4/onos-ngsdn-app
   --routers 2 \
   --hosts-per-router 1 \
   --topology linear \
-  --output target/env/topology-linear-2r-1h.json
+  --output topologies/generated/topology-linear-2r-1h.json
 
 ./tools/build_netcfg.py \
   --ip 127.0.0.1 \
-  --topology-file target/env/topology-linear-2r-1h.json \
+  --topology-file topologies/generated/topology-linear-2r-1h.json \
   --output netcfg-linear-2.json
 
 curl --fail -sSL --user ${ONOS_AUTH} \
@@ -373,7 +396,7 @@ curl --fail -sSL --user ${ONOS_AUTH} \
 ```bash
 ./tools/build_netcfg.py \
   --ip 172.20.0.1 \
-  --topology-file target/env/topology-linear-2r-1h.json \
+  --topology-file topologies/generated/topology-linear-2r-1h.json \
   --output netcfg-linear-2.json
 ```
 
@@ -391,7 +414,7 @@ sudo mn -c
 
 sudo python3 ./mininet/multi_router_p4runtime.py \
   --grpc-exe /usr/bin/simple_switch_grpc \
-  --topology-file target/env/topology-linear-2r-1h.json \
+  --topology-file topologies/generated/topology-linear-2r-1h.json \
   --link-bw 10 \
   --link-delay 5ms \
   --cpu-port 255
@@ -404,11 +427,11 @@ sudo python3 ./mininet/multi_router_p4runtime.py \
   --routers 4 \
   --hosts-per-router 2 \
   --topology ring \
-  --output target/env/topology-ring-4r-2h.json
+  --output topologies/generated/topology-ring-4r-2h.json
 
 ./tools/build_netcfg.py \
   --ip 127.0.0.1 \
-  --topology-file target/env/topology-ring-4r-2h.json \
+  --topology-file topologies/generated/topology-ring-4r-2h.json \
   --output netcfg-ring-4.json
 ```
 
@@ -417,7 +440,7 @@ sudo mn -c
 
 sudo python3 ./mininet/multi_router_p4runtime.py \
   --grpc-exe /usr/bin/simple_switch_grpc \
-  --topology-file target/env/topology-ring-4r-2h.json \
+  --topology-file topologies/generated/topology-ring-4r-2h.json \
   --cpu-port 255
 ```
 

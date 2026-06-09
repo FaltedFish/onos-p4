@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "name": "linear-6r-3domain",
+  "routers": [
+    {
+      "name": "r1",
+      "domain": "c1"
+    },
+    {
+      "name": "r2",
+      "domain": "c1"
+    },
+    {
+      "name": "r3",
+      "domain": "c2"
+    },
+    {
+      "name": "r4",
+      "domain": "c2"
+    },
+    {
+      "name": "r5",
+      "domain": "c3"
+    },
+    {
+      "name": "r6",
+      "domain": "c3"
+    }
+  ],
+  "links": [
+    {
+      "left": "r1",
+      "right": "r2"
+    },
+    {
+      "left": "r2",
+      "right": "r3"
+    },
+    {
+      "left": "r3",
+      "right": "r4"
+    },
+    {
+      "left": "r4",
+      "right": "r5"
+    },
+    {
+      "left": "r5",
+      "right": "r6"
+    }
+  ],
+  "hosts": [
+    {
+      "name": "h1",
+      "router": "r1"
+    },
+    {
+      "name": "h2",
+      "router": "r2"
+    },
+    {
+      "name": "h3",
+      "router": "r3"
+    },
+    {
+      "name": "h4",
+      "router": "r4"
+    },
+    {
+      "name": "h5",
+      "router": "r5"
+    },
+    {
+      "name": "h6",
+      "router": "r6"
+    }
+  ]
+}

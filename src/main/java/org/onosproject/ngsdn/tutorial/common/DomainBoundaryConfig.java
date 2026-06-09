@@ -28,7 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Static cross-domain boundary routes generated from topology netcfg.
+ * Static cross-domain neighbor SID routes generated from topology netcfg.
  */
 public class DomainBoundaryConfig extends Config<ApplicationId> {
 
@@ -57,7 +57,7 @@ public class DomainBoundaryConfig extends Config<ApplicationId> {
     }
 
     /**
-     * Gets static boundary routes.
+     * Gets static boundary SID routes.
      *
      * @return boundary routes, or null if malformed
      */

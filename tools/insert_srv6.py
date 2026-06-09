@@ -15,6 +15,10 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT_DIR = ROOT_DIR / "target" / "srv6-insert"
 DEFAULT_TOPOLOGY_GLOB = "topology-*.json"
+DEFAULT_TOPOLOGY_DIRS = (
+    ROOT_DIR / "topologies" / "generated",
+    ROOT_DIR / "target" / "env",
+)
 MIN_SRV6_ENTRIES = 2
 MAX_SRV6_ENTRIES = 6
 DEFAULT_DOMAIN = "default"
@@ -57,11 +61,12 @@ def load_domain_map(path):
 
 
 def find_default_topology():
-    env_dir = ROOT_DIR / "target" / "env"
-    candidates = list(env_dir.glob(DEFAULT_TOPOLOGY_GLOB))
+    candidates = []
+    for topology_dir in DEFAULT_TOPOLOGY_DIRS:
+        candidates.extend(topology_dir.glob(DEFAULT_TOPOLOGY_GLOB))
     if not candidates:
         raise Srv6InsertError(
-            f"No topology files found under {env_dir}. "
+            "No topology files found under topologies/generated or target/env. "
             "Run env/create_onos.sh first or pass --topology-file.")
     return max(candidates, key=lambda candidate: candidate.stat().st_mtime)
 
@@ -226,7 +231,9 @@ def parse_args(argv):
             "Example: tools/insert_srv6.py r1 r2 r4 h3"))
     parser.add_argument(
         "--topology-file",
-        help="Expanded topology JSON file. Defaults to the newest target/env/topology-*.json")
+        help=(
+            "Expanded topology JSON file. Defaults to the newest "
+            "topologies/generated/topology-*.json or target/env/topology-*.json"))
     parser.add_argument(
         "--output-dir",
         default=str(DEFAULT_OUTPUT_DIR),

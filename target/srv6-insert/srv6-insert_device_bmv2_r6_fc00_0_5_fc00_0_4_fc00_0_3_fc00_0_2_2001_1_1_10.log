@@ -1,0 +1,2 @@
+mesg: ttyname failed: Inappropriate ioctl for device
+Installing path on device device:bmv2:r6: fc00:0:5::, fc00:0:4::, fc00:0:3::, fc00:0:2::, 2001:1:1::10

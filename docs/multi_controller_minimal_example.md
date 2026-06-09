@@ -36,19 +36,19 @@ cd /home/p4/onos-ngsdn-app
   --config topologies/linear-4r-2domain.json \
   --grpc-base 9659 \
   --thrift-base 9190 \
-  --output target/env/topology-linear-4r-2domain-test.json
+  --output topologies/generated/topology-linear-4r-2domain-test.json
 ```
 
 确认文件存在：
 
 ```bash
-ls -l target/env/topology-linear-4r-2domain-test.json
+ls -l topologies/generated/topology-linear-4r-2domain-test.json
 ```
 
 如果后续 `create_mininet.sh` 报：
 
 ```text
-Topology file not found: target/env/topology-linear-4r-2domain-test.json
+Topology file not found: topologies/generated/topology-linear-4r-2domain-test.json
 ```
 
 说明这一步没有成功执行，或者当前终端不在仓库根目录。
@@ -62,7 +62,7 @@ DOMAIN=c1 \
 ONOS_CONTAINER=onos-c1 \
 ONOS_REST_PORT=8281 \
 RECREATE_ONOS=1 \
-TOPOLOGY_FILE=target/env/topology-linear-4r-2domain-test.json \
+TOPOLOGY_FILE=topologies/generated/topology-linear-4r-2domain-test.json \
 ./env/create_onos.sh
 ```
 
@@ -73,7 +73,7 @@ DOMAIN=c2 \
 ONOS_CONTAINER=onos-c2 \
 ONOS_REST_PORT=8381 \
 RECREATE_ONOS=1 \
-TOPOLOGY_FILE=target/env/topology-linear-4r-2domain-test.json \
+TOPOLOGY_FILE=topologies/generated/topology-linear-4r-2domain-test.json \
 ./env/create_onos.sh
 ```
 
@@ -84,7 +84,7 @@ TOPOLOGY_FILE=target/env/topology-linear-4r-2domain-test.json \
 启动同一份 Mininet/BMv2 拓扑：
 
 ```bash
-TOPOLOGY_FILE=target/env/topology-linear-4r-2domain-test.json \
+TOPOLOGY_FILE=topologies/generated/topology-linear-4r-2domain-test.json \
 ./env/create_mininet.sh
 ```
 
@@ -146,7 +146,7 @@ EOF
 
 ```bash
 ./tools/insert_srv6.py \
-  --topology-file target/env/topology-linear-4r-2domain-test.json \
+  --topology-file topologies/generated/topology-linear-4r-2domain-test.json \
   --domain-map target/2domain-runtime/domains.json \
   --clear r1 r2 r3 h4
 ```
@@ -155,7 +155,7 @@ EOF
 
 ```bash
 ./tools/insert_srv6.py \
-  --topology-file target/env/topology-linear-4r-2domain-test.json \
+  --topology-file topologies/generated/topology-linear-4r-2domain-test.json \
   --domain-map target/2domain-runtime/domains.json \
   --clear r4 r3 r2 h1
 ```
@@ -179,7 +179,7 @@ h4 ping6 -c 3 2001:1:1::10
 
 `Topology file not found`：
 
-- 先执行第 1 步生成 `target/env/topology-linear-4r-2domain-test.json`。
+- 先执行第 1 步生成 `topologies/generated/topology-linear-4r-2domain-test.json`。
 - 确认当前目录是 `/home/p4/onos-ngsdn-app`。
 - ONOS 和 Mininet 必须使用同一个 `TOPOLOGY_FILE`。
 
